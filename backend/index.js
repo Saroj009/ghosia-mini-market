@@ -1,9 +1,8 @@
-require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
 const mongoose = require('mongoose');
-const Product = require('./models/Product');
-const User = require('./models/User');
+const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,170 +11,184 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// MongoDB Connection
-const connectDB = async () => {
+// MongoDB Atlas Connection
+const MONGODB_URI = 'mongodb+srv://sjha5791_db_user:jsz2U1xopubxz8tY@cluster0.oaxjmmf.mongodb.net/grocery_db?retryWrites=true&w=majority';
+
+mongoose.connect(MONGODB_URI)
+  .then(() => console.log('✅ MongoDB Atlas connected successfully'))
+  .catch(err => console.error('❌ MongoDB connection error:', err));
+
+// User Schema
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  role: { type: String, default: 'customer', enum: ['customer', 'admin'] },
+  phone: String,
+  address: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const User = mongoose.model('User', userSchema);
+
+// Product Schema
+const productSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  price: { type: Number, required: true },
+  category: { type: String, required: true },
+  stock: { type: Number, default: 100 }
+});
+
+const Product = mongoose.model('Product', productSchema);
+
+// JWT Secret
+const JWT_SECRET = 'your-secret-key-change-in-production';
+
+// Auth Middleware
+const authMiddleware = async (req, res, next) => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ghosia-market');
-    console.log('✅ MongoDB connected successfully');
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'No token provided' });
     
-    // Seed initial data if database is empty
-    const productCount = await Product.countDocuments();
-    if (productCount === 0) {
-      console.log('📦 Seeding initial products...');
-      await seedProducts();
-    }
-
-    // Create default admin if no admin exists
-    const adminExists = await User.findOne({ role: 'admin' });
-    if (!adminExists) {
-      console.log('👤 Creating default admin account...');
-      await createDefaultAdmin();
-    }
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.userId = decoded.userId;
+    next();
   } catch (error) {
-    console.error('❌ MongoDB connection error:', error.message);
-    console.log('⚠️  Running without database - using fallback data');
+    res.status(401).json({ error: 'Invalid token' });
   }
 };
-
-// Create default admin
-const createDefaultAdmin = async () => {
-  try {
-    const admin = new User({
-      name: 'Admin',
-      email: 'admin@ghosia.com',
-      password: 'admin123', // Will be hashed automatically
-      role: 'admin',
-      phone: '07700900000',
-      address: 'Ghosia Mini Market, Birmingham'
-    });
-    await admin.save();
-    console.log('✅ Default admin created');
-    console.log('📧 Email: admin@ghosia.com');
-    console.log('🔑 Password: admin123');
-  } catch (error) {
-    console.error('❌ Error creating admin:', error.message);
-  }
-};
-
-// Seed function
-const seedProducts = async () => {
-  const initialProducts = [
-    { name: "Milk 2L", price: 1.49, category: "Dairy" },
-    { name: "Bread Loaf", price: 1.19, category: "Bakery" },
-    { name: "Eggs 12-pack", price: 2.29, category: "Dairy" },
-    { name: "Basmati Rice 5kg", price: 8.99, category: "Grains" },
-    { name: "Sunflower Oil 1L", price: 3.49, category: "Oils" },
-    { name: "Butter 250g", price: 1.89, category: "Dairy" },
-    { name: "Cheddar Cheese 400g", price: 3.29, category: "Dairy" },
-    { name: "Chicken Breast 1kg", price: 5.99, category: "Meat" },
-    { name: "Lamb Mince 500g", price: 4.49, category: "Meat" },
-    { name: "Onions 1kg", price: 0.89, category: "Vegetables" },
-    { name: "Tomatoes 6-pack", price: 1.29, category: "Vegetables" },
-    { name: "Potatoes 2.5kg", price: 2.49, category: "Vegetables" },
-    { name: "Garlic Bulb", price: 0.49, category: "Vegetables" },
-    { name: "Ginger Root 200g", price: 0.79, category: "Vegetables" },
-    { name: "Chapati Flour 10kg", price: 9.99, category: "Grains" },
-    { name: "Lentils Red 2kg", price: 3.99, category: "Grains" },
-    { name: "Chickpeas 400g tin", price: 0.89, category: "Tinned" },
-    { name: "Chopped Tomatoes tin", price: 0.69, category: "Tinned" },
-    { name: "Coconut Milk 400ml", price: 1.29, category: "Tinned" },
-    { name: "Orange Juice 1L", price: 1.59, category: "Drinks" },
-    { name: "Mango Juice 1L", price: 1.79, category: "Drinks" },
-    { name: "Yogurt Natural 1kg", price: 1.99, category: "Dairy" },
-    { name: "Cumin Seeds 100g", price: 0.99, category: "Spices" },
-    { name: "Turmeric Powder 100g", price: 0.89, category: "Spices" },
-    { name: "Chilli Powder 100g", price: 0.89, category: "Spices" },
-  ];
-
-  try {
-    await Product.insertMany(initialProducts);
-    console.log('✅ Products seeded successfully');
-  } catch (error) {
-    console.error('❌ Error seeding products:', error.message);
-  }
-};
-
-// Fallback data for when DB is not connected
-const fallbackProducts = [
-  { id: 1, name: "Milk 2L", price: 1.49, category: "Dairy" },
-  { id: 2, name: "Bread Loaf", price: 1.19, category: "Bakery" },
-  { id: 3, name: "Eggs 12-pack", price: 2.29, category: "Dairy" },
-  { id: 4, name: "Basmati Rice 5kg", price: 8.99, category: "Grains" },
-  { id: 5, name: "Sunflower Oil 1L", price: 3.49, category: "Oils" },
-  { id: 6, name: "Butter 250g", price: 1.89, category: "Dairy" },
-  { id: 7, name: "Cheddar Cheese 400g", price: 3.29, category: "Dairy" },
-  { id: 8, name: "Chicken Breast 1kg", price: 5.99, category: "Meat" },
-  { id: 9, name: "Lamb Mince 500g", price: 4.49, category: "Meat" },
-  { id: 10, name: "Onions 1kg", price: 0.89, category: "Vegetables" },
-  { id: 11, name: "Tomatoes 6-pack", price: 1.29, category: "Vegetables" },
-  { id: 12, name: "Potatoes 2.5kg", price: 2.49, category: "Vegetables" },
-  { id: 13, name: "Garlic Bulb", price: 0.49, category: "Vegetables" },
-  { id: 14, name: "Ginger Root 200g", price: 0.79, category: "Vegetables" },
-  { id: 15, name: "Chapati Flour 10kg", price: 9.99, category: "Grains" },
-  { id: 16, name: "Lentils Red 2kg", price: 3.99, category: "Grains" },
-  { id: 17, name: "Chickpeas 400g tin", price: 0.89, category: "Tinned" },
-  { id: 18, name: "Chopped Tomatoes tin", price: 0.69, category: "Tinned" },
-  { id: 19, name: "Coconut Milk 400ml", price: 1.29, category: "Tinned" },
-  { id: 20, name: "Orange Juice 1L", price: 1.59, category: "Drinks" },
-  { id: 21, name: "Mango Juice 1L", price: 1.79, category: "Drinks" },
-  { id: 22, name: "Yogurt Natural 1kg", price: 1.99, category: "Dairy" },
-  { id: 23, name: "Cumin Seeds 100g", price: 0.99, category: "Spices" },
-  { id: 24, name: "Turmeric Powder 100g", price: 0.89, category: "Spices" },
-  { id: 25, name: "Chilli Powder 100g", price: 0.89, category: "Spices" },
-];
-
-// Import middleware
-const { verifyToken, isAdmin } = require('./middleware/auth');
 
 // Routes
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    ok: true, 
-    store: 'Ghosia Mini Market',
-    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
-  });
-});
 
-// Public product routes (no auth required)
-app.get('/api/products', async (req, res) => {
+// Register
+app.post('/api/auth/register', async (req, res) => {
   try {
-    if (mongoose.connection.readyState === 1) {
-      const products = await Product.find({ inStock: true });
-      const formattedProducts = products.map(p => ({
-        id: p._id.toString(),
-        name: p.name,
-        price: p.price,
-        category: p.category
-      }));
-      res.json(formattedProducts);
-    } else {
-      res.json(fallbackProducts);
+    const { name, email, password, phone, address } = req.body;
+    
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Email already exists' });
     }
+    
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      phone,
+      address
+    });
+    
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
+    
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
   } catch (error) {
-    console.error('Error fetching products:', error);
-    res.json(fallbackProducts);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Auth routes
-const authRoutes = require('./routes/auth');
-app.use('/api/auth', authRoutes);
+// Login
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
+    
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
+    
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
+    
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-// Order routes (customer or admin)
-const orderRoutes = require('./routes/orders');
-app.use('/api/orders', verifyToken, orderRoutes);
+// Get current user
+app.get('/api/auth/me', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select('-password');
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-// Admin-only product management
-const productRoutes = require('./routes/products');
-app.use('/api/admin/products', verifyToken, isAdmin, productRoutes);
+// Get all products
+app.get('/api/products', async (req, res) => {
+  try {
+    const products = await Product.find();
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-// Start server
-connectDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`🚀 Backend running on http://localhost:${PORT}`);
-    console.log(`📍 Location: Birmingham, UK`);
-    console.log(`🛒 Store: Ghosia Mini Market`);
-    console.log(`\n🔐 Authentication enabled`);
-    console.log(`👥 Roles: Customer, Admin`);
-  });
+// Seed initial products if none exist
+async function seedProducts() {
+  const count = await Product.countDocuments();
+  if (count === 0) {
+    const products = [
+      { name: 'Whole Milk', price: 1.20, category: 'Dairy' },
+      { name: 'Cheddar Cheese', price: 3.50, category: 'Dairy' },
+      { name: 'Greek Yogurt', price: 2.00, category: 'Dairy' },
+      { name: 'Butter', price: 2.50, category: 'Dairy' },
+      { name: 'White Bread', price: 1.00, category: 'Bakery' },
+      { name: 'Croissants', price: 2.50, category: 'Bakery' },
+      { name: 'Bagels', price: 2.00, category: 'Bakery' },
+      { name: 'Chicken Breast', price: 5.00, category: 'Meat' },
+      { name: 'Ground Beef', price: 4.50, category: 'Meat' },
+      { name: 'Pork Chops', price: 6.00, category: 'Meat' },
+      { name: 'Basmati Rice', price: 3.00, category: 'Grains' },
+      { name: 'Quinoa', price: 4.00, category: 'Grains' },
+      { name: 'Oats', price: 2.50, category: 'Grains' },
+      { name: 'Carrots', price: 1.50, category: 'Vegetables' },
+      { name: 'Broccoli', price: 2.00, category: 'Vegetables' },
+      { name: 'Tomatoes', price: 2.50, category: 'Vegetables' },
+      { name: 'Bell Peppers', price: 3.00, category: 'Vegetables' },
+      { name: 'Olive Oil', price: 7.00, category: 'Oils' },
+      { name: 'Vegetable Oil', price: 4.00, category: 'Oils' },
+      { name: 'Coconut Oil', price: 6.00, category: 'Oils' },
+      { name: 'Baked Beans', price: 1.50, category: 'Tinned' },
+      { name: 'Tomato Soup', price: 2.00, category: 'Tinned' },
+      { name: 'Tuna', price: 3.00, category: 'Tinned' },
+      { name: 'Orange Juice', price: 3.50, category: 'Drinks' },
+      { name: 'Cola', price: 2.00, category: 'Drinks' },
+      { name: 'Sparkling Water', price: 1.50, category: 'Drinks' },
+      { name: 'Black Pepper', price: 2.50, category: 'Spices' },
+      { name: 'Turmeric', price: 3.00, category: 'Spices' },
+      { name: 'Cumin', price: 2.50, category: 'Spices' }
+    ];
+    await Product.insertMany(products);
+    console.log('✅ Products seeded successfully');
+  }
+}
+
+seedProducts();
+
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
 });

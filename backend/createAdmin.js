@@ -1,12 +1,27 @@
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
-const User = require('./models/User');
+
+// MongoDB Atlas Connection
+const MONGODB_URI = 'mongodb+srv://sjha5791_db_user:jsz2U1xopubxz8tY@cluster0.oaxjmmf.mongodb.net/grocery_db?retryWrites=true&w=majority';
+
+// User Schema
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  role: { type: String, default: 'customer', enum: ['customer', 'admin'] },
+  phone: String,
+  address: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const User = mongoose.model('User', userSchema);
 
 async function createAdmin() {
   try {
-    // Connect to MongoDB
-    await mongoose.connect('mongodb://localhost:27017/grocery_db');
-    console.log('✅ Connected to MongoDB');
+    // Connect to MongoDB Atlas
+    await mongoose.connect(MONGODB_URI);
+    console.log('✅ Connected to MongoDB Atlas');
 
     // Check if admin already exists
     const existingAdmin = await User.findOne({ email: 'ghosia5791@gmail.com' });

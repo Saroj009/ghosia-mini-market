@@ -592,7 +592,1041 @@ export default function App() {
         }
       `}</style>
 
-{/* All JSX remains the same but truncated here due to length - continues in actual file */}
-</div>
+      {/* Navigation */}
+      <nav className="nav">
+        <div className="logo" onClick={() => { setPage("shop"); setOrderDone(false); }}>
+          <div className="logo-icon">🛒</div>
+          <div>
+            <div className="logo-text">Ghosia Mini Market</div>
+            <div className="logo-sub">NEPALI & ASIAN GROCERY</div>
+          </div>
+        </div>
+
+        <div className="nav-center">
+          <span className="nav-link" onClick={() => { setPage("shop"); setOrderDone(false); }}>Home</span>
+          <span className="nav-link" onClick={() => setPage("deals")}>Deals</span>
+          <span className="nav-link" onClick={() => setPage("orders")}>Orders</span>
+          <span className="nav-link" onClick={() => setPage("saved")}>Saved Items</span>
+          <span className="nav-link" onClick={() => setPage("about")}>About Us</span>
+          <span className="nav-link" onClick={() => setPage("contact")}>Contact Us</span>
+        </div>
+
+        <div className="nav-right">
+          {user ? (
+            <>
+              <div className={`user-badge ${user.isAdmin ? "admin-badge" : ""}`}>
+                👤 {user.name} {user.isAdmin && "⚡"}
+              </div>
+              {user.isAdmin && (
+                <button className="nav-btn admin-btn" onClick={() => setPage("admin")}>
+                  ⚙️ Admin Panel
+                </button>
+              )}
+              <button className="logout-btn" onClick={handleLogout}>
+                🚪 Logout
+              </button>
+            </>
+          ) : (
+            <button className="nav-btn" onClick={() => setPage("auth")}>
+              🔐 Login / Sign Up
+            </button>
+          )}
+          <button className="nav-btn checkout-btn" onClick={goToCheckout}>
+            🛒 Cart <div className="badge">{totalItems}</div>
+          </button>
+        </div>
+      </nav>
+
+      {/* Toast Notification */}
+      {toast && <div className={`toast show ${toast.includes("⚠️") ? "warn" : ""}`}>{toast}</div>}
+
+      {/* Main Content Based on Page */}
+      {page === "auth" && !user && (
+        <div className="auth-wrap">
+          <div className="auth-box">
+            <div className="auth-header">
+              <div className="auth-icon">🔐</div>
+              <h2 className="auth-title">Welcome!</h2>
+              <p className="auth-subtitle">
+                {authMode === "login" ? "Login to access your account" : "Create a new account"}
+              </p>
+            </div>
+
+            <div className="auth-tabs">
+              <button
+                className={`auth-tab ${authMode === "login" ? "active" : ""}`}
+                onClick={() => setAuthMode("login")}
+              >
+                Login
+              </button>
+              <button
+                className={`auth-tab ${authMode === "register" ? "active" : ""}`}
+                onClick={() => setAuthMode("register")}
+              >
+                Register
+              </button>
+            </div>
+
+            <form onSubmit={handleAuth}>
+              {authMode === "register" && (
+                <div className="f-group">
+                  <label className="f-label">Full Name</label>
+                  <input
+                    className="f-input"
+                    placeholder="Enter your full name"
+                    value={authForm.name}
+                    onChange={(e) => setAuthForm({ ...authForm, name: e.target.value })}
+                    required={authMode === "register"}
+                  />
+                </div>
+              )}
+
+              <div className="f-group">
+                <label className="f-label">Email Address</label>
+                <input
+                  className="f-input"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={authForm.email}
+                  onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="f-group">
+                <label className="f-label">Password</label>
+                <input
+                  className="f-input"
+                  type="password"
+                  placeholder="••••••••"
+                  value={authForm.password}
+                  onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
+                  required
+                />
+              </div>
+
+              {authMode === "register" && (
+                <>
+                  <div className="f-group">
+                    <label className="f-label">Phone Number</label>
+                    <input
+                      className="f-input"
+                      placeholder="Your phone number"
+                      value={authForm.phone}
+                      onChange={(e) => setAuthForm({ ...authForm, phone: e.target.value })}
+                      required={authMode === "register"}
+                    />
+                  </div>
+
+                  <div className="f-group">
+                    <label className="f-label">Address</label>
+                    <input
+                      className="f-input"
+                      placeholder="Your delivery address"
+                      value={authForm.address}
+                      onChange={(e) => setAuthForm({ ...authForm, address: e.target.value })}
+                      required={authMode === "register"}
+                    />
+                  </div>
+                </>
+              )}
+
+              <button type="submit" className="auth-btn" disabled={authLoading}>
+                {authLoading ? "⏳ Please wait..." : authMode === "login" ? "🚀 Login" : "✨ Create Account"}
+              </button>
+            </form>
+
+            <div className="auth-switch">
+              {authMode === "login" ? (
+                <span>
+                  Don't have an account?{" "}
+                  <a onClick={() => setAuthMode("register")}>Sign up here</a>
+                </span>
+              ) : (
+                <span>
+                  Already have an account?{" "}
+                  <a onClick={() => setAuthMode("login")}>Login here</a>
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {page === "shop" && !orderDone && (
+        <>
+          <div className="hero">
+            <div className="hero-badge">
+              <span>🎉</span> FRESH & AUTHENTIC
+            </div>
+            <h1>Your Nepali & Asian Grocery Store</h1>
+            <p className="hero-sub">
+              Discover authentic Nepali and Asian products, fresh vegetables, premium spices, and all your grocery essentials in Birmingham.
+            </p>
+            <div className="search-wrap">
+              <div className="search-box">
+                <input
+                  type="text"
+                  placeholder="Search for products..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                <select value={category} onChange={(e) => setCategory(e.target.value)}>
+                  {categories.map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="body">
+            <div className="cat-row">
+              {categories.map((c) => (
+                <button
+                  key={c}
+                  className={`cat-btn ${category === c ? "active" : ""}`}
+                  onClick={() => setCategory(c)}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+
+            {loading ? (
+              <div className="spinner">
+                <div className="spin"></div>
+                <span style={{ color: "#aaa", fontWeight: 800 }}>Loading products...</span>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="empty">
+                <div className="empty-icon">📦</div>
+                <h3>No Products Found</h3>
+                <p>Try adjusting your search or category filter.</p>
+              </div>
+            ) : (
+              <>
+                <div className="section-header">
+                  <h2 className="section-title">Products</h2>
+                  <div className="section-count">{filtered.length} items</div>
+                </div>
+                <div className="grid">
+                  {filtered.map((p) => {
+                    const qty = cartQtyForProduct(p._id);
+                    return (
+                      <div key={p._id} className="card">
+                        {qty > 0 && <div className="in-cart-badge">{qty}</div>}
+                        <div className="card-thumb">
+                          <div className="product-emoji">{PRODUCT_EMOJIS[p.name] || "🛒"}</div>
+                          <img src={getProductImage(p)} alt={p.name} />
+                        </div>
+                        <div className="card-body">
+                          <div className="card-cat">{p.category}</div>
+                          <div className="card-name">{p.name}</div>
+                          <div className="card-foot">
+                            <div className="card-price">£{p.price.toFixed(2)}</div>
+                            <button className="add-btn" onClick={() => addToCart(p)}>
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            <div className="divider"></div>
+
+            {/* Shopping Cart Section */}
+            <div>
+              <div className="section-header">
+                <h2 className="section-title">Your Shopping Cart</h2>
+                <div className="section-count">{totalItems} items</div>
+              </div>
+
+              {cart.length === 0 ? (
+                <div className="empty">
+                  <div className="empty-icon">🛒</div>
+                  <h3>Your cart is empty</h3>
+                  <p>Add some products to get started!</p>
+                </div>
+              ) : (
+                <>
+                  {cart.map((item) => (
+                    <div key={item._id} className="cart-card">
+                      <div className="cart-thumb">
+                        <img src={getProductImage(item)} alt={item.name} />
+                      </div>
+                      <div className="cart-info">
+                        <div className="cart-name">{item.name}</div>
+                        <div className="cart-cat">{item.category}</div>
+                      </div>
+                      <div className="qty-control">
+                        <button className="qty-btn" onClick={() => changeQty(item._id, -1)}>
+                          −
+                        </button>
+                        <div className="qty-num">{item.qty}</div>
+                        <button className="qty-btn" onClick={() => changeQty(item._id, 1)}>
+                          +
+                        </button>
+                      </div>
+                      <div className="cart-price">£{(item.price * item.qty).toFixed(2)}</div>
+                      <button className="del-btn" onClick={() => removeFromCart(item._id)}>
+                        🗑
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Promo Code Section */}
+                  <div className="promo-section">
+                    {!appliedPromo ? (
+                      <>
+                        <div className="promo-input-group">
+                          <input
+                            className="promo-input"
+                            placeholder="Enter promo code (try WELCOME10)"
+                            value={promoCode}
+                            onChange={(e) => {
+                              setPromoCode(e.target.value);
+                              setPromoError("");
+                            }}
+                          />
+                          <button className="promo-btn" onClick={applyPromoCode}>
+                            Apply
+                          </button>
+                        </div>
+                        {promoError && <div className="promo-error">❌ {promoError}</div>}
+                      </>
+                    ) : (
+                      <div className="promo-success">
+                        <span className="promo-success-text">
+                          🎉 {appliedPromo.description}
+                        </span>
+                        <button className="promo-remove" onClick={removePromoCode}>
+                          ✕
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="order-box">
+                    <div className="order-row">
+                      <span>Subtotal ({totalItems} items)</span>
+                      <span>£{subtotal.toFixed(2)}</span>
+                    </div>
+                    {appliedPromo && discount > 0 && (
+                      <div className="order-row">
+                        <span>Discount ({appliedPromo.description})</span>
+                        <span className="discount">−£{discount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="order-row">
+                      <span>Shipping</span>
+                      <span className="free">FREE</span>
+                    </div>
+                    <div className="order-total">
+                      <span>Total</span>
+                      <span>£{total}</span>
+                    </div>
+                    <button className="go-checkout" onClick={goToCheckout}>
+                      Proceed to Checkout 🚀
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Reviews Section */}
+          <div className="reviews-section">
+            <div className="reviews-header">
+              <h2 className="reviews-title">
+                <span>⭐</span>
+                Customer Reviews
+                <span>⭐</span>
+              </h2>
+              <p className="reviews-subtitle">
+                See what our customers are saying about their shopping experience!
+              </p>
+            </div>
+
+            <div className="reviews-grid">
+              {CUSTOMER_REVIEWS.map((review, index) => (
+                <div key={index} className="review-card">
+                  <div className="review-header">
+                    <div className="reviewer-info">
+                      <h3>{review.name}</h3>
+                      <p className="review-date">{review.date}</p>
+                    </div>
+                  </div>
+                  {renderStars(review.rating)}
+                  <p className="review-text">{review.review}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {page === "about" && (
+        <div className="content-page">
+          <h1 className="page-title">
+            <span>🌟</span> About Us
+          </h1>
+          <p className="page-subtitle">
+            Welcome to Ghosia Mini Market - Your trusted source for authentic Nepali and Asian groceries in Birmingham!
+          </p>
+
+          <div className="info-card">
+            <h2>📖 Our Story</h2>
+            <p>
+              Ghosia Mini Market was founded with a simple mission: to bring the authentic flavors of Nepal and Asia
+              to the heart of Birmingham. We understand the importance of quality ingredients and traditional products
+              for creating delicious, authentic meals that remind you of home.
+            </p>
+          </div>
+
+          <div className="info-card">
+            <h2>🎯 What We Offer</h2>
+            <p>
+              From fresh vegetables and premium basmati rice to aromatic spices and specialty ingredients, we stock
+              everything you need for authentic Asian cooking. Our carefully curated selection includes:
+            </p>
+            <div style={{ marginTop: "20px" }}>
+              <p>🥬 <strong>Fresh Vegetables & Produce</strong> - Daily fresh deliveries</p>
+              <p>🌶️ <strong>Authentic Spices</strong> - Direct from the source</p>
+              <p>🍚 <strong>Premium Rice & Grains</strong> - Finest quality basmati and more</p>
+              <p>🥩 <strong>Meat & Protein</strong> - Halal certified options</p>
+              <p>🥫 <strong>Pantry Essentials</strong> - All your cooking basics</p>
+            </div>
+          </div>
+
+          <div className="info-card">
+            <h2>💚 Why Choose Us?</h2>
+            <p>
+              ✓ <strong>Authentic Products:</strong> Genuine Asian and Nepali groceries<br />
+              ✓ <strong>Fresh Quality:</strong> Regular stock updates and fresh produce<br />
+              ✓ <strong>Competitive Prices:</strong> Best value in Birmingham<br />
+              ✓ <strong>Fast Delivery:</strong> Quick and reliable service<br />
+              ✓ <strong>Expert Service:</strong> Friendly staff who understand your needs
+            </p>
+          </div>
+        </div>
+      )}
+
+      {page === "contact" && (
+        <div className="content-page">
+          <h1 className="page-title">
+            <span>📞</span> Contact Us
+          </h1>
+          <p className="page-subtitle">
+            Have questions? Need help? We're here for you! Get in touch with Ghosia Mini Market.
+          </p>
+
+          <div className="info-card">
+            <h2>🏪 Store Information</h2>
+            <div className="info-item">
+              <div className="info-icon">📍</div>
+              <div className="info-content">
+                <div className="info-label">Address</div>
+                <div className="info-value">
+                  123 High Street, Birmingham, B12 0PQ, United Kingdom
+                </div>
+              </div>
+            </div>
+
+            <div className="info-item">
+              <div className="info-icon">📞</div>
+              <div className="info-content">
+                <div className="info-label">Phone</div>
+                <div className="info-value">
+                  <a href="tel:+441213456789">+44 121 345 6789</a>
+                </div>
+              </div>
+            </div>
+
+            <div className="info-item">
+              <div className="info-icon">📧</div>
+              <div className="info-content">
+                <div className="info-label">Email</div>
+                <div className="info-value">
+                  <a href="mailto:info@ghosiaminimarket.com">info@ghosiaminimarket.com</a>
+                </div>
+              </div>
+            </div>
+
+            <div className="info-item">
+              <div className="info-icon">🕐</div>
+              <div className="info-content">
+                <div className="info-label">Opening Hours</div>
+                <div className="info-value">
+                  Monday - Saturday: 8:00 AM - 10:00 PM<br />
+                  Sunday: 9:00 AM - 8:00 PM
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="info-card">
+            <h2>💬 Get In Touch</h2>
+            <p>
+              Whether you have questions about our products, need help with an order, or just want to say hello,
+              we'd love to hear from you! Our friendly team is ready to assist you with all your grocery needs.
+            </p>
+            <p style={{ marginTop: "16px" }}>
+              📱 <strong>WhatsApp:</strong> +44 7700 900123<br />
+              🌐 <strong>Follow us on social media for daily deals and updates!</strong>
+            </p>
+          </div>
+        </div>
+      )}
+
+      {page === "deals" && (
+        <div className="content-page">
+          <h1 className="page-title">
+            <span>🎉</span> Special Deals
+          </h1>
+          <p className="page-subtitle">
+            Check back soon for amazing deals and special offers!
+          </p>
+
+          <div className="info-card">
+            <h2>🔥 Current Promo Codes</h2>
+            <div style={{ marginTop: "20px" }}>
+              <p><strong>WELCOME10</strong> - 10% off your order</p>
+              <p><strong>SAVE5</strong> - £5 off your order</p>
+              <p><strong>FIRST20</strong> - 20% off first order</p>
+              <p><strong>FREESHIP</strong> - Free shipping (already free!)</p>
+            </div>
+          </div>
+
+          <div className="empty">
+            <div className="empty-icon">🎁</div>
+            <h3>More Deals Coming Soon!</h3>
+            <p>We're working on bringing you the best offers. Stay tuned!</p>
+          </div>
+        </div>
+      )}
+
+      {page === "orders" && (
+        <div className="content-page">
+          <h1 className="page-title">
+            <span>📦</span> My Orders
+          </h1>
+          <p className="page-subtitle">
+            {user ? "View your order history and track deliveries." : "Please login to view your orders."}
+          </p>
+
+          {!user ? (
+            <div className="empty">
+              <div className="empty-icon">🔐</div>
+              <h3>Login Required</h3>
+              <p>Please login or create an account to view your orders.</p>
+              <button 
+                className="nav-btn" 
+                onClick={() => setPage("auth")}
+                style={{ marginTop: "20px" }}
+              >
+                🔐 Login / Sign Up
+              </button>
+            </div>
+          ) : (
+            <div className="empty">
+              <div className="empty-icon">📦</div>
+              <h3>No Orders Yet</h3>
+              <p>Start shopping to see your orders here!</p>
+              <button 
+                className="nav-btn" 
+                onClick={() => setPage("shop")}
+                style={{ marginTop: "20px" }}
+              >
+                🛒 Start Shopping
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {page === "saved" && (
+        <div className="content-page">
+          <h1 className="page-title">
+            <span>❤️</span> Saved Items
+          </h1>
+          <p className="page-subtitle">
+            {user ? "Your favorite products for quick access." : "Please login to save items."}
+          </p>
+
+          {!user ? (
+            <div className="empty">
+              <div className="empty-icon">🔐</div>
+              <h3>Login Required</h3>
+              <p>Please login or create an account to save items.</p>
+              <button 
+                className="nav-btn" 
+                onClick={() => setPage("auth")}
+                style={{ marginTop: "20px" }}
+              >
+                🔐 Login / Sign Up
+              </button>
+            </div>
+          ) : (
+            <div className="empty">
+              <div className="empty-icon">❤️</div>
+              <h3>No Saved Items</h3>
+              <p>Save your favorite products for quick access later!</p>
+              <button 
+                className="nav-btn" 
+                onClick={() => setPage("shop")}
+                style={{ marginTop: "20px" }}
+              >
+                🛒 Browse Products
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {page === "checkout" && !orderDone && (
+        <div className="checkout-wrap">
+          <button className="back-btn" onClick={() => setPage("shop")}>
+            ← Back to Shop
+          </button>
+
+          <h1 className="page-title">
+            <span>💳</span> Checkout
+          </h1>
+
+          {!user && (
+            <div className="guest-badge">
+              👤 Checking out as guest
+            </div>
+          )}
+
+          <div className="co-card">
+            <h3>📋 Delivery Information</h3>
+            <div className="f-group">
+              <label className="f-label">Full Name</label>
+              <input
+                className="f-input"
+                placeholder="John Doe"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
+            </div>
+
+            <div className="f-group">
+              <label className="f-label">Email</label>
+              <input
+                className="f-input"
+                type="email"
+                placeholder="your@email.com"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+              />
+            </div>
+
+            <div className="f-group">
+              <label className="f-label">Delivery Address</label>
+              <input
+                className="f-input"
+                placeholder="123 Street, City, Postcode"
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+              />
+            </div>
+
+            <div className="f-group">
+              <label className="f-label">Phone Number</label>
+              <input
+                className="f-input"
+                placeholder="+44 7700 900123"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              />
+            </div>
+
+            {!user && (
+              <div className="checkbox-group">
+                <input
+                  type="checkbox"
+                  className="checkbox-input"
+                  checked={createAccount}
+                  onChange={(e) => setCreateAccount(e.target.checked)}
+                />
+                <label className="checkbox-label">
+                  <strong>Create an account</strong> to save your details and track orders easily in the future!
+                </label>
+              </div>
+            )}
+
+            {!user && createAccount && (
+              <div className="f-group" style={{ marginTop: "20px" }}>
+                <label className="f-label">Password (min 6 characters)</label>
+                <input
+                  className="f-input"
+                  type="password"
+                  placeholder="••••••••"
+                  value={accountPassword}
+                  onChange={(e) => setAccountPassword(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="co-card">
+            <h3>💳 Payment Information</h3>
+            <div className="f-group">
+              <label className="f-label">Card Number</label>
+              <input
+                className="f-input"
+                placeholder="4242 4242 4242 4242"
+                value={form.card}
+                onChange={(e) => setForm({ ...form, card: e.target.value })}
+              />
+            </div>
+
+            <div className="f-row">
+              <div className="f-group" style={{ flex: 1 }}>
+                <label className="f-label">Expiry Date</label>
+                <input
+                  className="f-input"
+                  placeholder="MM/YY"
+                  value={form.expiry}
+                  onChange={(e) => setForm({ ...form, expiry: e.target.value })}
+                />
+              </div>
+
+              <div className="f-group" style={{ flex: 1 }}>
+                <label className="f-label">CVV</label>
+                <input
+                  className="f-input"
+                  placeholder="123"
+                  value={form.cvv}
+                  onChange={(e) => setForm({ ...form, cvv: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="co-card">
+            <h3>📦 Order Summary</h3>
+            {cart.map((item) => (
+              <div key={item._id} className="summary-item">
+                <span>
+                  {item.name} × {item.qty}
+                </span>
+                <span>£{(item.price * item.qty).toFixed(2)}</span>
+              </div>
+            ))}
+            <div className="summary-item">
+              <span>Subtotal</span>
+              <span>£{subtotal.toFixed(2)}</span>
+            </div>
+            {appliedPromo && discount > 0 && (
+              <div className="summary-item">
+                <span>Discount</span>
+                <span className="discount">−£{discount.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="summary-item">
+              <span>Shipping</span>
+              <span className="free">FREE</span>
+            </div>
+            <div className="summary-total">
+              <span>Total</span>
+              <span>£{total}</span>
+            </div>
+
+            <button className="place-btn" onClick={placeOrder}>
+              Place Order 🚀
+            </button>
+          </div>
+        </div>
+      )}
+
+      {orderDone && (
+        <div className="success-wrap">
+          <div className="success-box">
+            <span className="s-icon">✅</span>
+            <h2>Order Placed Successfully!</h2>
+            <p>
+              Thank you for your order! We'll send you a confirmation email shortly. Your delicious groceries
+              will be delivered soon!
+            </p>
+            <button
+              className="continue-btn"
+              onClick={() => {
+                setOrderDone(false);
+                setPage("shop");
+              }}
+            >
+              Continue Shopping 🛒
+            </button>
+          </div>
+        </div>
+      )}
+
+      {page === "admin" && user?.isAdmin && (
+        <div className="admin-wrap">
+          <div className="admin-header">
+            <h1 className="admin-title">
+              <span>⚙️</span> Admin Dashboard
+            </h1>
+            <button
+              className="nav-btn"
+              onClick={() => setShowAddProduct(!showAddProduct)}
+            >
+              {showAddProduct ? "❌ Cancel" : "➕ Add New Product"}
+            </button>
+          </div>
+
+          <div className="admin-stats">
+            <div className="stat-card">
+              <div className="stat-value">{products.length}</div>
+              <div className="stat-label">Total Products</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value">{categories.length - 1}</div>
+              <div className="stat-label">Categories</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value">{products.reduce((sum, p) => sum + p.stock, 0)}</div>
+              <div className="stat-label">Total Stock</div>
+            </div>
+          </div>
+
+          {showAddProduct && (
+            <div className="add-product-form">
+              <h3 style={{ fontSize: "24px", fontWeight: 900, marginBottom: "24px", color: "#fff" }}>
+                ➕ Add New Product
+              </h3>
+              <form onSubmit={handleAddProduct}>
+                <div className="form-grid">
+                  <div className="f-group">
+                    <label className="f-label">Product Name</label>
+                    <input
+                      className="f-input"
+                      required
+                      value={productForm.name}
+                      onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="f-group">
+                    <label className="f-label">Price (£)</label>
+                    <input
+                      className="f-input"
+                      type="number"
+                      step="0.01"
+                      required
+                      value={productForm.price}
+                      onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="f-group">
+                    <label className="f-label">Category</label>
+                    <input
+                      className="f-input"
+                      required
+                      value={productForm.category}
+                      onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="f-group">
+                    <label className="f-label">Stock</label>
+                    <input
+                      className="f-input"
+                      type="number"
+                      required
+                      value={productForm.stock}
+                      onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="f-group">
+                  <label className="f-label">Product Image</label>
+                  <div className="image-options">
+                    <div className="upload-btn-wrapper">
+                      <button className="upload-btn" type="button" disabled={uploading}>
+                        {uploading ? "⏳ Uploading..." : "📤 Upload Image"}
+                      </button>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(e, false)}
+                        disabled={uploading}
+                      />
+                    </div>
+                    <div className="or-divider">OR</div>
+                    <input
+                      className="f-input"
+                      placeholder="Paste image URL"
+                      value={productForm.image}
+                      onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
+                    />
+                  </div>
+                  {productForm.image && (
+                    <img src={productForm.image} alt="Preview" className="img-preview" />
+                  )}
+                </div>
+
+                <button type="submit" className="auth-btn">
+                  ✨ Add Product
+                </button>
+              </form>
+            </div>
+          )}
+
+          <div className="admin-table">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Image</th>
+                  <th>Name</th>
+                  <th>Category</th>
+                  <th>Price</th>
+                  <th>Stock</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {products.map((p) =>
+                  editingProduct?._id === p._id ? (
+                    <tr key={p._id}>
+                      <td>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                          {editingProduct.image && (
+                            <img
+                              src={editingProduct.image}
+                              alt="Preview"
+                              style={{ width: "60px", height: "60px", objectFit: "cover", borderRadius: "8px" }}
+                            />
+                          )}
+                          <div className="upload-btn-wrapper">
+                            <button className="upload-btn" type="button" disabled={uploading}>
+                              {uploading ? "⏳" : "📤"}
+                            </button>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleImageUpload(e, true)}
+                              disabled={uploading}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <input
+                          className="edit-input"
+                          value={editingProduct.name}
+                          onChange={(e) =>
+                            setEditingProduct({ ...editingProduct, name: e.target.value })
+                          }
+                        />
+                      </td>
+                      <td>
+                        <input
+                          className="edit-input"
+                          value={editingProduct.category}
+                          onChange={(e) =>
+                            setEditingProduct({ ...editingProduct, category: e.target.value })
+                          }
+                        />
+                      </td>
+                      <td>
+                        <input
+                          className="edit-input"
+                          type="number"
+                          step="0.01"
+                          value={editingProduct.price}
+                          onChange={(e) =>
+                            setEditingProduct({ ...editingProduct, price: e.target.value })
+                          }
+                        />
+                      </td>
+                      <td>
+                        <input
+                          className="edit-input"
+                          type="number"
+                          value={editingProduct.stock}
+                          onChange={(e) =>
+                            setEditingProduct({ ...editingProduct, stock: e.target.value })
+                          }
+                        />
+                      </td>
+                      <td>
+                        <button
+                          className="action-btn btn-save"
+                          onClick={() => handleUpdateProduct(editingProduct)}
+                        >
+                          💾 Save
+                        </button>
+                        <button
+                          className="action-btn btn-cancel"
+                          onClick={() => setEditingProduct(null)}
+                        >
+                          ❌ Cancel
+                        </button>
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr key={p._id}>
+                      <td>
+                        <img
+                          src={getProductImage(p)}
+                          alt={p.name}
+                          style={{ width: "60px", height: "60px", objectFit: "cover", borderRadius: "8px" }}
+                        />
+                      </td>
+                      <td>{p.name}</td>
+                      <td>{p.category}</td>
+                      <td>£{p.price.toFixed(2)}</td>
+                      <td>{p.stock}</td>
+                      <td>
+                        <button
+                          className="action-btn btn-edit"
+                          onClick={() => setEditingProduct({ ...p })}
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          className="action-btn btn-delete"
+                          onClick={() => handleDeleteProduct(p._id)}
+                        >
+                          🗑️ Delete
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <footer className="footer">
+        <div className="footer-inner">
+          <div className="footer-brand">Ghosia Mini Market 🛒</div>
+          <div className="footer-links">
+            <span className="footer-link" onClick={() => setPage("about")}>
+              About Us
+            </span>
+            <span className="footer-link" onClick={() => setPage("contact")}>
+              Contact Us
+            </span>
+          </div>
+          <div className="footer-copy">
+            © 2026 Ghosia Mini Market. Your trusted Nepali & Asian grocery store in Birmingham.
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }

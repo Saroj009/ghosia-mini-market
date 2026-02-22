@@ -36,7 +36,8 @@ const productSchema = new mongoose.Schema({
   name: { type: String, required: true },
   price: { type: Number, required: true },
   category: { type: String, required: true },
-  stock: { type: Number, default: 100 }
+  stock: { type: Number, default: 100 },
+  createdAt: { type: Date, default: Date.now }
 });
 
 const Product = mongoose.model('Product', productSchema);
@@ -55,6 +56,19 @@ const authMiddleware = async (req, res, next) => {
     next();
   } catch (error) {
     res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
+// Admin Middleware
+const adminMiddleware = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    next();
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -142,6 +156,42 @@ app.get('/api/products', async (req, res) => {
   try {
     const products = await Product.find();
     res.json(products);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ADMIN: Create product
+app.post('/api/admin/products', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { name, price, category, stock } = req.body;
+    const product = await Product.create({ name, price, category, stock });
+    res.json(product);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ADMIN: Update product
+app.put('/api/admin/products/:id', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { name, price, category, stock } = req.body;
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      { name, price, category, stock },
+      { new: true }
+    );
+    res.json(product);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ADMIN: Delete product
+app.delete('/api/admin/products/:id', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    await Product.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

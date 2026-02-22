@@ -70,6 +70,7 @@ export default function App() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [productForm, setProductForm] = useState({ name: "", price: "", category: "", stock: 100, image: "" });
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -148,6 +149,52 @@ export default function App() {
   }
 
   function handleLogout() { localStorage.removeItem('token'); setUser(null); setCart([]); setPage('shop'); showToast("👋 Logged out successfully"); }
+
+  // Handle image upload from device
+  async function handleImageUpload(e, isEdit = false) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showToast('⚠️ Please select an image file');
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('⚠️ Image must be less than 5MB');
+      return;
+    }
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const res = await fetch(`${API_URL}/admin/upload`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        body: formData
+      });
+      const data = await res.json();
+      
+      if (data.imageUrl) {
+        if (isEdit) {
+          setEditingProduct({ ...editingProduct, image: data.imageUrl });
+        } else {
+          setProductForm({ ...productForm, image: data.imageUrl });
+        }
+        showToast('✅ Image uploaded successfully!');
+      } else {
+        showToast('⚠️ ' + (data.error || 'Upload failed'));
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      showToast('⚠️ Failed to upload image');
+    }
+    setUploading(false);
+  }
 
   async function handleAddProduct(e) {
     e.preventDefault();
@@ -231,7 +278,14 @@ export default function App() {
         .btn-delete:hover{background:rgba(239,68,68,0.25);}
         .add-product-form{background:rgba(30,30,30,0.9);border:2px solid rgba(255,255,255,0.15);border-radius:20px;padding:32px;margin-bottom:30px;}
         .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:20px;}
-        .img-preview{max-width:80px;max-height:80px;border-radius:8px;margin-top:10px;border:2px solid rgba(255,255,255,0.2);}
+        .img-preview{max-width:120px;max-height:120px;border-radius:12px;margin-top:12px;border:2px solid rgba(255,255,255,0.2);display:block;}
+        .upload-btn-wrapper{position:relative;overflow:hidden;display:inline-block;}
+        .upload-btn{background:rgba(59,130,246,0.15);border:2px solid #3b82f6;color:#3b82f6;padding:10px 20px;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all 0.3s;}
+        .upload-btn:hover{background:rgba(59,130,246,0.25);transform:translateY(-2px);}
+        .upload-btn-wrapper input[type=file]{font-size:100px;position:absolute;left:0;top:0;opacity:0;cursor:pointer;}
+        .upload-btn:disabled{opacity:0.5;cursor:not-allowed;}
+        .image-options{display:flex;flex-direction:column;gap:12px;}
+        .or-divider{text-align:center;color:#666;font-size:14px;font-weight:700;margin:12px 0;}
         .auth-wrap{min-height:calc(100vh - 80px);display:flex;align-items:center;justify-content:center;padding:40px 20px;}
         .auth-box{background:rgba(30,30,30,0.95);border:2px solid rgba(255,255,255,0.2);border-radius:32px;padding:50px 44px;width:100%;max-width:520px;box-shadow:0 20px 80px rgba(0,0,0,0.8);}
         .auth-header{text-align:center;margin-bottom:36px;}
@@ -404,7 +458,18 @@ export default function App() {
                 <div className="f-group"><label className="f-label">Category</label><input className="f-input" value={productForm.category} onChange={e => setProductForm({...productForm, category: e.target.value})} required /></div>
                 <div className="f-group"><label className="f-label">Stock</label><input className="f-input" type="number" value={productForm.stock} onChange={e => setProductForm({...productForm, stock: e.target.value})} required /></div>
               </div>
-              <div className="f-group"><label className="f-label">🖼️ Image URL (optional)</label><input className="f-input" type="url" placeholder="https://example.com/image.jpg" value={productForm.image} onChange={e => setProductForm({...productForm, image: e.target.value})} />{productForm.image && <img src={productForm.image} className="img-preview" alt="Preview" />}</div>
+              <div className="f-group">
+                <label className="f-label">🖼️ Product Image</label>
+                <div className="image-options">
+                  <div className="upload-btn-wrapper">
+                    <button type="button" className="upload-btn" disabled={uploading}>{uploading ? '⏳ Uploading...' : '📷 Upload from Device'}</button>
+                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, false)} disabled={uploading} />
+                  </div>
+                  <div className="or-divider">or paste image URL</div>
+                  <input className="f-input" type="url" placeholder="https://example.com/image.jpg" value={productForm.image} onChange={e => setProductForm({...productForm, image: e.target.value})} />
+                </div>
+                {productForm.image && <img src={productForm.image} className="img-preview" alt="Preview" />}
+              </div>
               <div style={{display:"flex",gap:10}}>
                 <button type="submit" className="action-btn btn-save">✅ Add Product</button>
                 <button type="button" className="action-btn btn-cancel" onClick={() => {setShowAddProduct(false); setProductForm({ name: "", price: "", category: "", stock: 100, image: "" });}}>Cancel</button>
@@ -415,7 +480,7 @@ export default function App() {
           )}
           <div className="admin-table">
             <table className="table">
-              <thead><tr><th>Product Name</th><th>Price</th><th>Category</th><th>Stock</th><th>Image URL</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Product Name</th><th>Price</th><th>Category</th><th>Stock</th><th>Image</th><th>Actions</th></tr></thead>
               <tbody>
                 {products.map(product => (
                   <tr key={product._id}>
@@ -423,7 +488,7 @@ export default function App() {
                     <td>{editingProduct && editingProduct._id === product._id ? <input className="edit-input" type="number" step="0.01" value={editingProduct.price} onChange={e => setEditingProduct({...editingProduct, price: e.target.value})} /> : `£${product.price.toFixed(2)}`}</td>
                     <td>{editingProduct && editingProduct._id === product._id ? <input className="edit-input" value={editingProduct.category} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} /> : product.category}</td>
                     <td>{editingProduct && editingProduct._id === product._id ? <input className="edit-input" type="number" value={editingProduct.stock} onChange={e => setEditingProduct({...editingProduct, stock: e.target.value})} /> : product.stock}</td>
-                    <td>{editingProduct && editingProduct._id === product._id ? <div><input className="edit-input" type="url" placeholder="Image URL" value={editingProduct.image ||''} onChange={e => setEditingProduct({...editingProduct, image: e.target.value})} />{editingProduct.image && <img src={editingProduct.image} className="img-preview" alt="Preview" />}</div> : (product.image ? <img src={product.image} style={{maxWidth:60,maxHeight:60,borderRadius:8}} alt={product.name} /> : '❌')}</td>
+                    <td>{editingProduct && editingProduct._id === product._id ? (<div><div className="upload-btn-wrapper" style={{marginBottom:10}}><button type="button" className="upload-btn" disabled={uploading}>{uploading ? '⏳' : '📷 Upload'}</button><input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, true)} disabled={uploading} /></div><input className="edit-input" type="url" placeholder="or URL" value={editingProduct.image ||''} onChange={e => setEditingProduct({...editingProduct, image: e.target.value})} />{editingProduct.image && <img src={editingProduct.image} className="img-preview" alt="Preview" />}</div>) : (product.image ? <img src={product.image} style={{maxWidth:60,maxHeight:60,borderRadius:8}} alt={product.name} /> : '❌')}</td>
                     <td>{editingProduct && editingProduct._id === product._id ? (<><button className="action-btn btn-save" onClick={() => handleUpdateProduct(editingProduct)}>💾 Save</button><button className="action-btn btn-cancel" onClick={() => setEditingProduct(null)}>Cancel</button></>) : (<><button className="action-btn btn-edit" onClick={() => setEditingProduct(product)}>✏️ Edit</button><button className="action-btn btn-delete" onClick={() => handleDeleteProduct(product._id)}>🗑️ Delete</button></>)}</td>
                   </tr>
                 ))}
@@ -433,6 +498,7 @@ export default function App() {
         </div>
       )}
 
+      {/* AUTH, SHOP, CHECKOUT, SUCCESS PAGES - Same as before */}
       {page === "auth" && (
         <div className="auth-wrap">
           <div className="auth-box">

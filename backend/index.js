@@ -17,9 +17,24 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Middleware - CORS configuration with environment variable
+// Middleware - CORS configuration - ALLOW ALL ORIGINS IN DEVELOPMENT
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, Postman, curl)
+    if (!origin) return callback(null, true);
+    
+    // In production, check against FRONTEND_URL
+    if (process.env.NODE_ENV === 'production' && process.env.FRONTEND_URL) {
+      if (origin === process.env.FRONTEND_URL) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    } else {
+      // In development, allow all origins (localhost, 192.168.x.x, etc.)
+      callback(null, true);
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200
 };
@@ -361,8 +376,9 @@ async function seedProducts() {
 
 seedProducts();
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
+  console.log(`🌐 CORS: Allowing all origins in development mode`);
+  console.log(`📱 Access from network: http://192.168.1.169:${PORT}`);
 });

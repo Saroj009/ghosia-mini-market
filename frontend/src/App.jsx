@@ -87,6 +87,11 @@ export default function App() {
   }
 
   function addToCart(product) {
+    if (!user) {
+      showToast("⚠️ Please login to add items to cart");
+      setPage("auth");
+      return;
+    }
     setCart(old => {
       const ex = old.find(i => i.id === product.id);
       if (ex) return old.map(i => i.id === product.id ? {...i, qty: i.qty+1} : i);
@@ -103,6 +108,19 @@ export default function App() {
 
   const totalItems = cart.reduce((s,i) => s+i.qty, 0);
   const total = cart.reduce((s,i) => s+i.price*i.qty, 0).toFixed(2);
+
+  function goToCheckout() {
+    if (!user) {
+      showToast("⚠️ Please login to checkout");
+      setPage("auth");
+      return;
+    }
+    if (cart.length === 0) {
+      showToast("⚠️ Your cart is empty");
+      return;
+    }
+    setPage("checkout");
+  }
 
   function placeOrder() {
     if (!form.name || !form.address || !form.phone || !form.card) {
@@ -209,14 +227,10 @@ export default function App() {
         .auth-switch a{color:#fff;font-weight:900;cursor:pointer;text-decoration:none;}
         .auth-switch a:hover{text-decoration:underline;}
         
-        .hero{background:linear-gradient(180deg,rgba(255,255,255,0.05),transparent);padding:100px 32px 80px;text-align:center;position:relative;overflow:hidden;border-bottom:2px solid rgba(255,255,255,0.1);}
-        .hero-badge{display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.3);color:#fff;border-radius:50px;padding:10px 26px;font-size:14px;font-weight:900;letter-spacing:2px;text-transform:uppercase;margin-bottom:32px;}
-        .hero h1{font-size:72px;font-weight:900;line-height:1.1;margin-bottom:24px;color:#fff;}
-        .hero-sub{font-size:20px;color:#aaa;margin-bottom:50px;max-width:600px;margin-left:auto;margin-right:auto;line-height:1.8;font-weight:600;}
-        .stats-row{display:flex;justify-content:center;gap:60px;margin-top:50px;}
-        .stat{text-align:center;}
-        .stat-num{font-size:42px;font-weight:900;color:#fff;}
-        .stat-label{font-size:14px;color:#aaa;margin-top:6px;text-transform:uppercase;letter-spacing:2px;font-weight:800;}
+        .hero{background:linear-gradient(180deg,rgba(255,255,255,0.05),transparent);padding:80px 32px 60px;text-align:center;position:relative;overflow:hidden;border-bottom:2px solid rgba(255,255,255,0.1);}
+        .hero-badge{display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.3);color:#fff;border-radius:50px;padding:10px 26px;font-size:14px;font-weight:900;letter-spacing:2px;text-transform:uppercase;margin-bottom:28px;}
+        .hero h1{font-size:64px;font-weight:900;line-height:1.1;margin-bottom:20px;color:#fff;}
+        .hero-sub{font-size:18px;color:#aaa;margin-bottom:40px;max-width:600px;margin-left:auto;margin-right:auto;line-height:1.7;font-weight:600;}
         .search-wrap{max-width:700px;margin:0 auto;}
         .search-box{display:flex;background:rgba(30,30,30,0.8);border:2px solid rgba(255,255,255,0.2);border-radius:60px;overflow:hidden;transition:all 0.3s;box-shadow:0 10px 40px rgba(0,0,0,0.5);}
         .search-box:focus-within{border-color:#fff;box-shadow:0 10px 50px rgba(255,255,255,0.2);}
@@ -314,7 +328,6 @@ export default function App() {
         
         @media(max-width:768px){
           .hero h1{font-size:48px;}
-          .stats-row{gap:32px;flex-wrap:wrap;}
           .grid{grid-template-columns:repeat(2,1fr);gap:16px;}
           .f-row{flex-direction:column;}
           .cart-card{flex-wrap:wrap;gap:14px;}
@@ -351,7 +364,7 @@ export default function App() {
             <button className="cart-pill" onClick={() => setPage("auth")}>🔐 Login</button>
           )}
           {user && (
-            <button className="cart-pill" onClick={() => setPage(page==="checkout" ? "shop" : "checkout")}>
+            <button className="cart-pill" onClick={goToCheckout}>
               🧺
               {totalItems > 0 && <span className="badge">{totalItems}</span>}
               <span>{totalItems > 0 ? `£${total}` : "Cart"}</span>
@@ -452,7 +465,7 @@ export default function App() {
                 {cart.map(item => (
                   <div className="summary-item" key={item.id}>
                     <span>{item.name} <span style={{color:"#666"}}>×{item.qty}</span></span>
-                    <span style={{fontWeight:900}}>£{(item.price*item.qty).toFixed(2)}</span>
+                    <span style={{fontWeight:900,color:"#fff"}}>£{(item.price*item.qty).toFixed(2)}</span>
                   </div>
                 ))}
                 <div className="summary-item"><span>Delivery</span><span className="free">🎉 FREE</span></div>
@@ -492,12 +505,6 @@ export default function App() {
                   {categories.map(c=><option key={c}>{c}</option>)}
                 </select>
               </div>
-            </div>
-            <div className="stats-row">
-              <div className="stat"><div className="stat-num">25+</div><div className="stat-label">Products</div></div>
-              <div className="stat"><div className="stat-num">8</div><div className="stat-label">Categories</div></div>
-              <div className="stat"><div className="stat-num">FREE</div><div className="stat-label">Delivery</div></div>
-              <div className="stat"><div className="stat-num">30min</div><div className="stat-label">Est. Time</div></div>
             </div>
           </div>
 
@@ -580,7 +587,7 @@ export default function App() {
                   <div className="order-row"><span>Delivery</span><span className="free">🎉 FREE</span></div>
                   <div className="order-row"><span>Estimated time</span><span>30–45 min</span></div>
                   <div className="order-total"><span>Total</span><span>£{total}</span></div>
-                  <button className="go-checkout" onClick={()=>setPage("checkout")}>Proceed to Checkout →</button>
+                  <button className="go-checkout" onClick={goToCheckout}>Proceed to Checkout →</button>
                 </div>
               </>
             )}

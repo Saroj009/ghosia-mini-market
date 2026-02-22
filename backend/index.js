@@ -37,6 +37,7 @@ const productSchema = new mongoose.Schema({
   price: { type: Number, required: true },
   category: { type: String, required: true },
   stock: { type: Number, default: 100 },
+  image: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -172,14 +173,15 @@ app.get('/api/products', async (req, res) => {
 // ADMIN: Create product
 app.post('/api/admin/products', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const { name, price, category, stock } = req.body;
-    console.log('Creating product:', { name, price, category, stock });
+    const { name, price, category, stock, image } = req.body;
+    console.log('Creating product:', { name, price, category, stock, image });
     
     const product = await Product.create({ 
       name, 
       price: parseFloat(price), 
       category, 
-      stock: parseInt(stock) 
+      stock: parseInt(stock),
+      image: image || ''
     });
     
     console.log('Product created:', product);
@@ -193,8 +195,8 @@ app.post('/api/admin/products', authMiddleware, adminMiddleware, async (req, res
 // ADMIN: Update product
 app.put('/api/admin/products/:id', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const { name, price, category, stock } = req.body;
-    console.log('Updating product:', req.params.id, { name, price, category, stock });
+    const { name, price, category, stock, image } = req.body;
+    console.log('Updating product:', req.params.id, { name, price, category, stock, image });
     
     const product = await Product.findByIdAndUpdate(
       req.params.id,
@@ -202,7 +204,8 @@ app.put('/api/admin/products/:id', authMiddleware, adminMiddleware, async (req, 
         name, 
         price: parseFloat(price), 
         category, 
-        stock: parseInt(stock) 
+        stock: parseInt(stock),
+        image: image || ''
       },
       { new: true, runValidators: true }
     );
@@ -244,35 +247,35 @@ async function seedProducts() {
     const count = await Product.countDocuments();
     if (count === 0) {
       const products = [
-        { name: 'Whole Milk', price: 1.20, category: 'Dairy' },
-        { name: 'Cheddar Cheese', price: 3.50, category: 'Dairy' },
-        { name: 'Greek Yogurt', price: 2.00, category: 'Dairy' },
-        { name: 'Butter', price: 2.50, category: 'Dairy' },
-        { name: 'White Bread', price: 1.00, category: 'Bakery' },
-        { name: 'Croissants', price: 2.50, category: 'Bakery' },
-        { name: 'Bagels', price: 2.00, category: 'Bakery' },
-        { name: 'Chicken Breast', price: 5.00, category: 'Meat' },
-        { name: 'Ground Beef', price: 4.50, category: 'Meat' },
-        { name: 'Pork Chops', price: 6.00, category: 'Meat' },
-        { name: 'Basmati Rice', price: 3.00, category: 'Grains' },
-        { name: 'Quinoa', price: 4.00, category: 'Grains' },
-        { name: 'Oats', price: 2.50, category: 'Grains' },
-        { name: 'Carrots', price: 1.50, category: 'Vegetables' },
-        { name: 'Broccoli', price: 2.00, category: 'Vegetables' },
-        { name: 'Tomatoes', price: 2.50, category: 'Vegetables' },
-        { name: 'Bell Peppers', price: 3.00, category: 'Vegetables' },
-        { name: 'Olive Oil', price: 7.00, category: 'Oils' },
-        { name: 'Vegetable Oil', price: 4.00, category: 'Oils' },
-        { name: 'Coconut Oil', price: 6.00, category: 'Oils' },
-        { name: 'Baked Beans', price: 1.50, category: 'Tinned' },
-        { name: 'Tomato Soup', price: 2.00, category: 'Tinned' },
-        { name: 'Tuna', price: 3.00, category: 'Tinned' },
-        { name: 'Orange Juice', price: 3.50, category: 'Drinks' },
-        { name: 'Cola', price: 2.00, category: 'Drinks' },
-        { name: 'Sparkling Water', price: 1.50, category: 'Drinks' },
-        { name: 'Black Pepper', price: 2.50, category: 'Spices' },
-        { name: 'Turmeric', price: 3.00, category: 'Spices' },
-        { name: 'Cumin', price: 2.50, category: 'Spices' }
+        { name: 'Whole Milk', price: 1.20, category: 'Dairy', image: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400' },
+        { name: 'Cheddar Cheese', price: 3.50, category: 'Dairy', image: 'https://images.unsplash.com/photo-1618164436241-4473940d1f5c?w=400' },
+        { name: 'Greek Yogurt', price: 2.00, category: 'Dairy', image: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400' },
+        { name: 'Butter', price: 2.50, category: 'Dairy', image: 'https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?w=400' },
+        { name: 'White Bread', price: 1.00, category: 'Bakery', image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400' },
+        { name: 'Croissants', price: 2.50, category: 'Bakery', image: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400' },
+        { name: 'Bagels', price: 2.00, category: 'Bakery', image: 'https://images.unsplash.com/photo-1584131097598-cf7eca77ff42?w=400' },
+        { name: 'Chicken Breast', price: 5.00, category: 'Meat', image: 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=400' },
+        { name: 'Ground Beef', price: 4.50, category: 'Meat', image: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=400' },
+        { name: 'Pork Chops', price: 6.00, category: 'Meat', image: 'https://images.unsplash.com/photo-1602470520998-f4a52199a3d6?w=400' },
+        { name: 'Basmati Rice', price: 3.00, category: 'Grains', image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400' },
+        { name: 'Quinoa', price: 4.00, category: 'Grains', image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400' },
+        { name: 'Oats', price: 2.50, category: 'Grains', image: 'https://images.unsplash.com/photo-1574085733277-851d9d856a3a?w=400' },
+        { name: 'Carrots', price: 1.50, category: 'Vegetables', image: 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=400' },
+        { name: 'Broccoli', price: 2.00, category: 'Vegetables', image: 'https://images.unsplash.com/photo-1583663848850-46af132dc08e?w=400' },
+        { name: 'Tomatoes', price: 2.50, category: 'Vegetables', image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400' },
+        { name: 'Bell Peppers', price: 3.00, category: 'Vegetables', image: 'https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=400' },
+        { name: 'Olive Oil', price: 7.00, category: 'Oils', image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=400' },
+        { name: 'Vegetable Oil', price: 4.00, category: 'Oils', image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=400' },
+        { name: 'Coconut Oil', price: 6.00, category: 'Oils', image: 'https://images.unsplash.com/photo-1520693727906-ff5d0f066a7e?w=400' },
+        { name: 'Baked Beans', price: 1.50, category: 'Tinned', image: 'https://images.unsplash.com/photo-1571942676516-bcab84649e44?w=400' },
+        { name: 'Tomato Soup', price: 2.00, category: 'Tinned', image: 'https://images.unsplash.com/photo-1603105037880-880cd4edfb0d?w=400' },
+        { name: 'Tuna', price: 3.00, category: 'Tinned', image: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=400' },
+        { name: 'Orange Juice', price: 3.50, category: 'Drinks', image: 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=400' },
+        { name: 'Cola', price: 2.00, category: 'Drinks', image: 'https://images.unsplash.com/photo-1554866585-cd94860890b7?w=400' },
+        { name: 'Sparkling Water', price: 1.50, category: 'Drinks', image: 'https://images.unsplash.com/photo-1523362628745-0c100150b504?w=400' },
+        { name: 'Black Pepper', price: 2.50, category: 'Spices', image: 'https://images.unsplash.com/photo-1599909533730-f80e2c3b3f05?w=400' },
+        { name: 'Turmeric', price: 3.00, category: 'Spices', image: 'https://images.unsplash.com/photo-1615485500704-8e990f9900f7?w=400' },
+        { name: 'Cumin', price: 2.50, category: 'Spices', image: 'https://images.unsplash.com/photo-1596040033229-a0b548b2f047?w=400' }
       ];
       await Product.insertMany(products);
       console.log('✅ Products seeded successfully');

@@ -50,6 +50,14 @@ const PRODUCT_EMOJIS = {
   "Cola": "🥤", "Sparkling Water": "💧", "Black Pepper": "🌶️", "Turmeric": "🌶️", "Cumin": "🌶️"
 };
 
+// Promo codes configuration
+const PROMO_CODES = {
+  "WELCOME10": { discount: 10, type: "percentage", description: "10% off your order" },
+  "SAVE5": { discount: 5, type: "fixed", description: "£5 off your order" },
+  "FREESHIP": { discount: 0, type: "shipping", description: "Free shipping (already free!)" },
+  "FIRST20": { discount: 20, type: "percentage", description: "20% off first order" },
+};
+
 export default function App() {
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
@@ -58,7 +66,7 @@ export default function App() {
   const [page, setPage] = useState("shop");
   const [orderDone, setOrderDone] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ name:"", address:"", phone:"", card:"", expiry:"", cvv:"" });
+  const [form, setForm] = useState({ name:"", email:"", address:"", phone:"", card:"", expiry:"", cvv:"" });
   const [toast, setToast] = useState("");
   
   const [user, setUser] = useState(null);
@@ -66,11 +74,37 @@ export default function App() {
   const [authMode, setAuthMode] = useState("login");
   const [authLoading, setAuthLoading] = useState(false);
 
+  // Guest checkout states
+  const [createAccount, setCreateAccount] = useState(false);
+  const [accountPassword, setAccountPassword] = useState("");
+
+  // Promo code states
+  const [promoCode, setPromoCode] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState(null);
+  const [promoError, setPromoError] = useState("");
+
   // Admin states
   const [editingProduct, setEditingProduct] = useState(null);
   const [productForm, setProductForm] = useState({ name: "", price: "", category: "", stock: 100, image: "" });
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    const savedCart = localStorage.getItem('ghosia_cart');
+    if (savedCart) {
+      try {
+        setCart(JSON.parse(savedCart));
+      } catch (e) {
+        console.error('Failed to parse cart:', e);
+      }
+    }
+  }, []);
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('ghosia_cart', JSON.stringify(cart));
+  }, [cart]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -105,7 +139,7 @@ export default function App() {
   function showToast(msg) { setToast(msg); setTimeout(() => setToast(""), 2500); }
 
   function addToCart(product) {
-    if (!user) { showToast("⚠️ Please login to add items to cart"); setPage("auth"); return; }
+    // No login required - allow guest checkout
     setCart(old => {
       const ex = old.find(i => i._id === product._id);
       if (ex) return old.map(i => i._id === product._id ? {...i, qty: i.qty+1} : i);
@@ -118,17 +152,107 @@ export default function App() {
   function removeFromCart(id) { setCart(old => old.filter(i => i._id !== id)); }
 
   const totalItems = cart.reduce((s,i) => s+i.qty, 0);
-  const total = cart.reduce((s,i) => s+i.price*i.qty, 0).toFixed(2);
+  const subtotal = cart.reduce((s,i) => s+i.price*i.qty, 0);
+  
+  // Calculate discount
+  let discount = 0;
+  if (appliedPromo) {
+    if (appliedPromo.type === "percentage") {
+      discount = (subtotal * appliedPromo.discount) / 100;
+    } else if (appliedPromo.type === "fixed") {
+      discount = appliedPromo.discount;
+    }
+  }
+  
+  const total = (subtotal - discount).toFixed(2);
 
   function goToCheckout() {
-    if (!user) { showToast("⚠️ Please login to checkout"); setPage("auth"); return; }
     if (cart.length === 0) { showToast("⚠️ Your cart is empty"); return; }
     setPage("checkout");
   }
 
-  function placeOrder() {
-    if (!form.name || !form.address || !form.phone || !form.card) { showToast("⚠️ Please fill in all fields"); return; }
-    setOrderDone(true); setCart([]); setForm({ name:"", address:"", phone:"", card:"", expiry:"", cvv:"" });
+  function applyPromoCode() {
+    const code = promoCode.trim().toUpperCase();
+    if (!code) {
+      setPromoError("Please enter a promo code");
+      return;
+    }
+    
+    if (PROMO_CODES[code]) {
+      setAppliedPromo(PROMO_CODES[code]);
+      setPromoError("");
+      showToast(`✅ Promo code applied: ${PROMO_CODES[code].description}`);
+    } else {
+      setPromoError("Invalid promo code");
+      setAppliedPromo(null);
+    }
+  }
+
+  function removePromoCode() {
+    setAppliedPromo(null);
+    setPromoCode("");
+    setPromoError("");
+    showToast("🗑️ Promo code removed");
+  }
+
+  async function placeOrder() {
+    // Validate required fields
+    if (!form.name || !form.email || !form.address || !form.phone || !form.card) { 
+      showToast("⚠️ Please fill in all required fields"); 
+      return; 
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email)) {
+      showToast("⚠️ Please enter a valid email address");
+      return;
+    }
+
+    // If user wants to create an account, validate password
+    if (createAccount && !user) {
+      if (!accountPassword || accountPassword.length < 6) {
+        showToast("⚠️ Password must be at least 6 characters");
+        return;
+      }
+
+      // Create account first
+      try {
+        const res = await fetch(`${API_URL}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: form.name,
+            email: form.email,
+            password: accountPassword,
+            phone: form.phone,
+            address: form.address
+          })
+        });
+        const data = await res.json();
+        
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+          setUser(data.user);
+          showToast(`✅ Account created! Welcome ${data.user.name}!`);
+        } else {
+          showToast(`⚠️ ${data.error || 'Failed to create account'}`);
+          return;
+        }
+      } catch (error) {
+        showToast("⚠️ Failed to create account. Continuing as guest.");
+      }
+    }
+
+    // Place order (this would normally send to backend)
+    setOrderDone(true); 
+    setCart([]); 
+    setForm({ name:"", email:"", address:"", phone:"", card:"", expiry:"", cvv:"" });
+    setCreateAccount(false);
+    setAccountPassword("");
+    setAppliedPromo(null);
+    setPromoCode("");
+    localStorage.removeItem('ghosia_cart');
   }
 
   const cartQtyForProduct = (id) => { const item = cart.find(i => i._id === id); return item ? item.qty : 0; };
@@ -148,7 +272,13 @@ export default function App() {
     setAuthLoading(false);
   }
 
-  function handleLogout() { localStorage.removeItem('token'); setUser(null); setCart([]); setPage('shop'); showToast("👋 Logged out successfully"); }
+  function handleLogout() { 
+    localStorage.removeItem('token'); 
+    setUser(null); 
+    // Keep cart for guest checkout
+    setPage('shop'); 
+    showToast("👋 Logged out successfully"); 
+  }
 
   async function handleImageUpload(e, isEdit = false) {
     const file = e.target.files[0];
@@ -353,6 +483,7 @@ export default function App() {
         .order-total{display:flex;justify-content:space-between;font-size:32px;font-weight:900;padding-top:20px;margin-top:12px;border-top:3px solid rgba(255,255,255,0.2);}
         .order-total span{color:#fff;}
         .free{color:#10b981;font-weight:900;}
+        .discount{color:#ef4444;font-weight:900;}
         .go-checkout{width:100%;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:20px;padding:22px;font-size:20px;font-weight:900;cursor:pointer;margin-top:28px;transition:all 0.3s;box-shadow:0 10px 40px rgba(16,185,129,0.3);letter-spacing:1px;}
         .go-checkout:hover{transform:translateY(-3px);box-shadow:0 15px 50px rgba(16,185,129,0.4);}
         .checkout-wrap{max-width:800px;margin:0 auto;padding:60px 28px;}
@@ -390,6 +521,22 @@ export default function App() {
         .footer-link{color:#aaa;font-size:16px;font-weight:800;cursor:pointer;transition:all 0.3s;text-decoration:none;}
         .footer-link:hover{color:#fff;transform:translateY(-2px);}
         .footer-copy{color:#666;font-size:14px;width:100%;text-align:center;margin-top:28px;padding-top:28px;border-top:2px solid rgba(255,255,255,0.1);font-weight:700;}
+        .promo-section{background:rgba(16,185,129,0.05);border:2px solid rgba(16,185,129,0.2);border-radius:20px;padding:24px;margin-top:20px;}
+        .promo-input-group{display:flex;gap:12px;margin-bottom:12px;}
+        .promo-input{flex:1;padding:14px 18px;background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.2);border-radius:14px;color:#fff;font-size:15px;outline:none;transition:all 0.3s;font-weight:600;}
+        .promo-input:focus{border-color:#10b981;box-shadow:0 0 20px rgba(16,185,129,0.2);}
+        .promo-btn{background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:14px;padding:14px 28px;font-size:15px;font-weight:900;cursor:pointer;transition:all 0.3s;white-space:nowrap;}
+        .promo-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(16,185,129,0.4);}
+        .promo-error{color:#ef4444;font-size:14px;font-weight:700;margin-top:8px;}
+        .promo-success{background:rgba(16,185,129,0.15);border:2px solid #10b981;border-radius:12px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;}
+        .promo-success-text{color:#10b981;font-size:15px;font-weight:800;}
+        .promo-remove{background:none;border:none;color:#ef4444;font-size:20px;cursor:pointer;transition:all 0.3s;padding:0 8px;}
+        .promo-remove:hover{transform:scale(1.2);}
+        .checkbox-group{display:flex;align-items:start;gap:12px;background:rgba(59,130,246,0.05);border:2px solid rgba(59,130,246,0.2);border-radius:16px;padding:18px;margin-top:20px;}
+        .checkbox-input{width:22px;height:22px;cursor:pointer;margin-top:2px;}
+        .checkbox-label{flex:1;color:#ddd;font-size:15px;font-weight:600;line-height:1.6;}
+        .checkbox-label strong{color:#fff;font-weight:900;}
+        .guest-badge{background:rgba(59,130,246,0.15);border:2px solid #3b82f6;color:#3b82f6;padding:8px 16px;border-radius:50px;font-size:13px;font-weight:800;display:inline-flex;align-items:center;gap:8px;margin-bottom:16px;}
         @media(max-width:768px){
           .hero h1{font-size:48px;}
           .grid{grid-template-columns:repeat(2,1fr);gap:16px;}
@@ -410,6 +557,7 @@ export default function App() {
           .table th,.table td{padding:12px 8px;}
           .content-page{padding:60px 20px;}
           .page-title{font-size:36px;}
+          .promo-input-group{flex-direction:column;}
         }
       `}</style>
 
@@ -433,7 +581,10 @@ export default function App() {
               {user.role !== 'admin' && <button className="nav-btn checkout-btn" onClick={goToCheckout}>💳 Checkout{totalItems > 0 && <span className="badge">{totalItems}</span>}</button>}
             </>
           ) : (
-            <button className="nav-btn" onClick={() => setPage("auth")}>🔐 Login</button>
+            <>
+              <button className="nav-btn" onClick={() => setPage("auth")}>🔐 Login</button>
+              {totalItems > 0 && <button className="nav-btn checkout-btn" onClick={goToCheckout}>💳 Checkout<span className="badge">{totalItems}</span></button>}
+            </>
           )}
         </div>
       </nav>
@@ -519,7 +670,7 @@ export default function App() {
         </div>
       )}
 
-      {/* ADMIN DASHBOARD - keeping existing code */}
+      {/* ADMIN DASHBOARD */}
       {page === "admin" && user && user.role === 'admin' && (
         <div className="admin-wrap">
           <div className="admin-header"><h1 className="admin-title">🛡️ Admin Dashboard</h1><button className="back-btn" onClick={() => setPage("shop")}>← Back to Shop</button></div>
@@ -577,14 +728,102 @@ export default function App() {
         </div>
       )}
 
-      {/* Keep all other pages (auth, shop, checkout, success) as before - truncated for space */}
-      {page==="auth"&&(<div className="auth-wrap"><div className="auth-box"><div className="auth-header"><div className="auth-icon">{authMode==='admin'?'🛡️':'🛒'}</div><h2 className="auth-title">{authMode==='register'&&'Create Account'}{authMode==='login'&&'Welcome Back'}{authMode==='admin'&&'Admin Access'}</h2><p className="auth-subtitle">{authMode==='register'&&'Sign up to start shopping'}{authMode==='login'&&'Login to your account'}{authMode==='admin'&&'Store management portal'}</p></div>{authMode!=='admin'&&<div className="auth-tabs"><button className={`auth-tab ${authMode==='login'?'active':''}`}onClick={()=>setAuthMode('login')}>Login</button><button className={`auth-tab ${authMode==='register'?'active':''}`}onClick={()=>setAuthMode('register')}>Register</button></div>}<form onSubmit={handleAuth}>{authMode==='register'&&<div className="f-group"><label className="f-label">Full Name</label><input className="f-input"placeholder="e.g. John Smith"value={authForm.name}onChange={e=>setAuthForm({...authForm,name:e.target.value})}required/></div>}<div className="f-group"><label className="f-label">Email</label><input className="f-input"type="email"placeholder="e.g. john@example.com"value={authForm.email}onChange={e=>setAuthForm({...authForm,email:e.target.value})}required/></div><div className="f-group"><label className="f-label">Password</label><input className="f-input"type="password"placeholder="••••••••"value={authForm.password}onChange={e=>setAuthForm({...authForm,password:e.target.value})}required minLength={6}/></div>{authMode==='register'&&(<><div className="f-group"><label className="f-label">Phone Number</label><input className="f-input"placeholder="e.g. 07700 900000"value={authForm.phone}onChange={e=>setAuthForm({...authForm,phone:e.target.value})}/></div><div className="f-group"><label className="f-label">Address</label><input className="f-input"placeholder="e.g. 123 High St, Birmingham"value={authForm.address}onChange={e=>setAuthForm({...authForm,address:e.target.value})}/></div></>)}<button type="submit"className={`auth-btn ${authMode==='admin'?'admin-btn':''}`}disabled={authLoading}>{authLoading?'⏳ Please wait...':(authMode==='register'?'🚀 Create Account':authMode==='admin'?'🛡️ Admin Login':'🔐 Login')}</button></form>{authMode!=='admin'&&(<><div className="auth-divider">or</div><div className="auth-switch"><a onClick={()=>setAuthMode('admin')}>🛡️ Admin Login</a></div></>)}{authMode==='admin'&&<div className="auth-switch"><a onClick={()=>setAuthMode('login')}>← Back to Customer Login</a></div>}</div></div>)}
+      {/* AUTH PAGE */}
+      {page==="auth"&&(<div className="auth-wrap"><div className="auth-box"><div className="auth-header"><div className="auth-icon">{authMode==='admin'?'🛡️':'🛒'}</div><h2 className="auth-title">{authMode==='register'&&'Create Account'}{authMode==='login'&&'Welcome Back'}{authMode==='admin'&&'Admin Access'}</h2><p className="auth-subtitle">{authMode==='register'&&'Sign up for faster checkout'}{authMode==='login'&&'Login to your account'}{authMode==='admin'&&'Store management portal'}</p></div>{authMode!=='admin'&&<div className="auth-tabs"><button className={`auth-tab ${authMode==='login'?'active':''}`}onClick={()=>setAuthMode('login')}>Login</button><button className={`auth-tab ${authMode==='register'?'active':''}`}onClick={()=>setAuthMode('register')}>Register</button></div>}<form onSubmit={handleAuth}>{authMode==='register'&&<div className="f-group"><label className="f-label">Full Name</label><input className="f-input"placeholder="e.g. John Smith"value={authForm.name}onChange={e=>setAuthForm({...authForm,name:e.target.value})}required/></div>}<div className="f-group"><label className="f-label">Email</label><input className="f-input"type="email"placeholder="e.g. john@example.com"value={authForm.email}onChange={e=>setAuthForm({...authForm,email:e.target.value})}required/></div><div className="f-group"><label className="f-label">Password</label><input className="f-input"type="password"placeholder="••••••••"value={authForm.password}onChange={e=>setAuthForm({...authForm,password:e.target.value})}required minLength={6}/></div>{authMode==='register'&&(<><div className="f-group"><label className="f-label">Phone Number</label><input className="f-input"placeholder="e.g. 07700 900000"value={authForm.phone}onChange={e=>setAuthForm({...authForm,phone:e.target.value})}/></div><div className="f-group"><label className="f-label">Address</label><input className="f-input"placeholder="e.g. 123 High St, Birmingham"value={authForm.address}onChange={e=>setAuthForm({...authForm,address:e.target.value})}/></div></>)}<button type="submit"className={`auth-btn ${authMode==='admin'?'admin-btn':''}`}disabled={authLoading}>{authLoading?'⏳ Please wait...':(authMode==='register'?'🚀 Create Account':authMode==='admin'?'🛡️ Admin Login':'🔐 Login')}</button></form>{authMode!=='admin'&&(<><div className="auth-divider">or</div><div className="auth-switch"><a onClick={()=>setAuthMode('admin')}>🛡️ Admin Login</a></div></>)}{authMode==='admin'&&<div className="auth-switch"><a onClick={()=>setAuthMode('login')}>← Back to Customer Login</a></div>}</div></div>)}
 
+      {/* ORDER SUCCESS */}
       {orderDone&&<div className="success-wrap"><div className="success-box"><span className="s-icon">🎉</span><h2>Order Confirmed!</h2><p>Thank you for shopping at<br/><strong style={{color:"#fff"}}>Ghosia Mini Market</strong>.<br/>Your groceries are on their way! 🚚</p><button className="continue-btn"onClick={()=>{setOrderDone(false);setPage("shop");}}>Continue Shopping</button></div></div>}
 
-      {page==="checkout"&&!orderDone&&user&&(<div className="checkout-wrap"><button className="back-btn"onClick={()=>setPage("shop")}>← Back to Shop</button>{cart.length===0?<div className="empty"><div className="empty-icon">🧺</div><h3>Your cart is empty</h3><p>Go back and add some products!</p></div>:(<><div className="co-card"><h3>🧾 Order Summary</h3>{cart.map(item=><div className="summary-item"key={item._id}><span>{PRODUCT_EMOJIS[item.name]||"📦"} {item.name} <span style={{color:"#666"}}>×{item.qty}</span></span><span style={{fontWeight:900,color:"#fff"}}>£{(item.price*item.qty).toFixed(2)}</span></div>)}<div className="summary-item"><span>Delivery</span><span className="free">🎉 FREE</span></div><div className="summary-total"><span>Total to Pay</span><span>£{total}</span></div></div><div className="co-card"><h3>🚚 Delivery Details</h3><div className="f-group"><label className="f-label">Full Name</label><input className="f-input"placeholder="e.g. Sara Ahmed"value={form.name}onChange={e=>setForm({...form,name:e.target.value})}/></div><div className="f-group"><label className="f-label">Delivery Address</label><input className="f-input"placeholder="e.g. 12 High Street, Birmingham, B1 1AA"value={form.address}onChange={e=>setForm({...form,address:e.target.value})}/></div><div className="f-group"><label className="f-label">Phone Number</label><input className="f-input"placeholder="e.g. 07700 900000"value={form.phone}onChange={e=>setForm({...form,phone:e.target.value})}/></div></div><div className="co-card"><h3>💳 Payment Details</h3><div className="f-group"><label className="f-label">Card Number</label><input className="f-input"placeholder="1234  5678  9012  3456"maxLength={19}value={form.card}onChange={e=>setForm({...form,card:e.target.value})}/></div><div className="f-row"><div className="f-group"style={{flex:1}}><label className="f-label">Expiry Date</label><input className="f-input"placeholder="MM / YY"maxLength={7}value={form.expiry}onChange={e=>setForm({...form,expiry:e.target.value})}/></div><div className="f-group"style={{flex:1}}><label className="f-label">CVV</label><input className="f-input"placeholder="•••"maxLength={3}type="password"value={form.cvv}onChange={e=>setForm({...form,cvv:e.target.value})}/></div></div><p style={{fontSize:14,color:"#666",marginTop:8,fontWeight:700}}>🔒 Your payment is secure and encrypted</p></div><button className="place-btn"onClick={placeOrder}>🛒 Place Order — £{total}</button></>)}</div>)}
+      {/* CHECKOUT PAGE */}
+      {page==="checkout"&&!orderDone&&(<div className="checkout-wrap"><button className="back-btn"onClick={()=>setPage("shop")}>← Back to Shop</button>{cart.length===0?<div className="empty"><div className="empty-icon">🧺</div><h3>Your cart is empty</h3><p>Go back and add some products!</p></div>:(<>
+        {!user && <div className="guest-badge">👤 Shopping as Guest</div>}
+        
+        <div className="co-card"><h3>🧾 Order Summary</h3>{cart.map(item=><div className="summary-item"key={item._id}><span>{PRODUCT_EMOJIS[item.name]||"📦"} {item.name} <span style={{color:"#666"}}>×{item.qty}</span></span><span style={{fontWeight:900,color:"#fff"}}>£{(item.price*item.qty).toFixed(2)}</span></div>)}
+        <div className="summary-item"><span>Subtotal</span><span style={{fontWeight:900,color:"#fff"}}>£{subtotal.toFixed(2)}</span></div>
+        {appliedPromo && <div className="summary-item"><span>Discount ({appliedPromo.description})</span><span className="discount">-£{discount.toFixed(2)}</span></div>}
+        <div className="summary-item"><span>Delivery</span><span className="free">🎉 FREE</span></div>
+        <div className="summary-total"><span>Total to Pay</span><span>£{total}</span></div>
+        
+        {/* Promo Code Section */}
+        <div className="promo-section">
+          <h4 style={{fontSize:16,fontWeight:900,color:"#fff",marginBottom:12,display:"flex",alignItems:"center",gap:8}}>🎁 Have a Promo Code?</h4>
+          {!appliedPromo ? (
+            <>
+              <div className="promo-input-group">
+                <input 
+                  className="promo-input" 
+                  placeholder="Enter promo code (e.g., WELCOME10)" 
+                  value={promoCode}
+                  onChange={e => {setPromoCode(e.target.value.toUpperCase()); setPromoError("");}}
+                  onKeyPress={e => e.key === 'Enter' && applyPromoCode()}
+                />
+                <button type="button" className="promo-btn" onClick={applyPromoCode}>Apply</button>
+              </div>
+              {promoError && <div className="promo-error">⚠️ {promoError}</div>}
+              <div style={{fontSize:13,color:"#666",marginTop:8,fontWeight:600}}>💡 Try: WELCOME10, SAVE5, FIRST20</div>
+            </>
+          ) : (
+            <div className="promo-success">
+              <div>
+                <div className="promo-success-text">✅ {appliedPromo.description}</div>
+                <div style={{fontSize:13,color:"#aaa",marginTop:4,fontWeight:600}}>Code: {promoCode}</div>
+              </div>
+              <button className="promo-remove" onClick={removePromoCode}>✕</button>
+            </div>
+          )}
+        </div>
+        </div>
+        
+        <div className="co-card"><h3>🚚 Delivery Details</h3>
+        <div className="f-group"><label className="f-label">Full Name *</label><input className="f-input"placeholder="e.g. Sara Ahmed"value={form.name}onChange={e=>setForm({...form,name:e.target.value})}required/></div>
+        <div className="f-group"><label className="f-label">Email Address *</label><input className="f-input"type="email"placeholder="e.g. sara@example.com"value={form.email}onChange={e=>setForm({...form,email:e.target.value})}required/></div>
+        <div className="f-group"><label className="f-label">Delivery Address *</label><input className="f-input"placeholder="e.g. 12 High Street, Birmingham, B1 1AA"value={form.address}onChange={e=>setForm({...form,address:e.target.value})}required/></div>
+        <div className="f-group"><label className="f-label">Phone Number *</label><input className="f-input"placeholder="e.g. 07700 900000"value={form.phone}onChange={e=>setForm({...form,phone:e.target.value})}required/></div>
+        
+        {/* Optional Account Creation for Guests */}
+        {!user && (
+          <div className="checkbox-group">
+            <input 
+              type="checkbox" 
+              className="checkbox-input" 
+              id="createAccount"
+              checked={createAccount}
+              onChange={e => setCreateAccount(e.target.checked)}
+            />
+            <label className="checkbox-label" htmlFor="createAccount">
+              <strong>Create an account for faster checkout next time</strong><br/>
+              Save your details and track orders easily
+            </label>
+          </div>
+        )}
+        
+        {createAccount && !user && (
+          <div className="f-group" style={{marginTop:16}}>
+            <label className="f-label">Create Password *</label>
+            <input 
+              className="f-input"
+              type="password"
+              placeholder="Minimum 6 characters"
+              value={accountPassword}
+              onChange={e => setAccountPassword(e.target.value)}
+              minLength={6}
+            />
+            <p style={{fontSize:13,color:"#666",marginTop:8,fontWeight:600}}>💡 You can login with this email and password after checkout</p>
+          </div>
+        )}
+        </div>
+        
+        <div className="co-card"><h3>💳 Payment Details</h3>
+        <div className="f-group"><label className="f-label">Card Number *</label><input className="f-input"placeholder="1234  5678  9012  3456"maxLength={19}value={form.card}onChange={e=>setForm({...form,card:e.target.value})}required/></div>
+        <div className="f-row"><div className="f-group"style={{flex:1}}><label className="f-label">Expiry Date *</label><input className="f-input"placeholder="MM / YY"maxLength={7}value={form.expiry}onChange={e=>setForm({...form,expiry:e.target.value})}required/></div><div className="f-group"style={{flex:1}}><label className="f-label">CVV *</label><input className="f-input"placeholder="•••"maxLength={3}type="password"value={form.cvv}onChange={e=>setForm({...form,cvv:e.target.value})}required/></div></div>
+        <p style={{fontSize:14,color:"#666",marginTop:8,fontWeight:700}}>🔒 Your payment is secure and encrypted</p>
+        </div>
+        
+        <button className="place-btn"onClick={placeOrder}>🛒 Place Order — £{total}</button>
+        </>)}</div>)}
 
-      {page==="shop"&&!orderDone&&(<><div className="hero"><div className="hero-badge">🛒 BIRMINGHAM'S FAVOURITE MINI MARKET</div><h1>Fresh Groceries<br/>Delivered Fast 🚚</h1><p className="hero-sub">Quality products straight from Ghosia Mini Market to your door. Same-day delivery available.</p><div className="search-wrap"><div className="search-box"><input placeholder="🔍  Search milk, rice, spices..."value={search}onChange={e=>setSearch(e.target.value)}/><select value={category}onChange={e=>setCategory(e.target.value)}>{categories.map(c=><option key={c}>{c}</option>)}</select></div></div></div><div className="body"><div className="cat-row">{categories.map(c=>{const emoji={Dairy:"🥛",Bakery:"🍞",Meat:"🥩",Grains:"🌾",Vegetables:"🥕",Oils:"🫒",Tinned:"🥫",Drinks:"🧃",Spices:"🌶️",All:"🏪"};return<button key={c}className={`cat-btn ${category===c?"active":""}`}onClick={()=>setCategory(c)}>{emoji[c]||""} {c}</button>;})}</div><div className="section-header"><div className="section-title">{category==="All"?"🏪 All Products":`${category}`}</div><div className="section-count">{filtered.length} items</div></div>{loading?<div className="spinner"><div className="spin"></div><p style={{color:"#aaa",fontSize:18,fontWeight:800}}>Loading products...</p></div>:filtered.length===0?<div className="empty"><div className="empty-icon">😔</div><h3>Nothing found</h3><p>Try a different search or category</p></div>:<div className="grid">{filtered.map(p=>{const inCart=cartQtyForProduct(p._id);const productImage=getProductImage(p);const productEmoji=PRODUCT_EMOJIS[p.name]||"📦";return<div className="card"key={p._id}>{inCart>0&&<div className="in-cart-badge">{inCart}</div>}<div className="card-thumb"><div className="product-emoji">{productEmoji}</div><img src={productImage}alt={p.name}loading="lazy"/></div><div className="card-body"><div className="card-cat">{p.category}</div><div className="card-name">{p.name}</div><div className="card-foot"><div className="card-price">£{p.price.toFixed(2)}</div><button className="add-btn"onClick={()=>addToCart(p)}>+</button></div></div></div>;})}</div>}{user&&cart.length>0&&(<><div className="divider"/><div className="section-header"><div className="section-title">🧺 Your Cart</div><div className="section-count">{totalItems} items</div></div>{cart.map(item=>{const productImage=getProductImage(item);return<div className="cart-card"key={item._id}><div className="cart-thumb"><img src={productImage}alt={item.name}loading="lazy"/></div><div className="cart-info"><div className="cart-name">{PRODUCT_EMOJIS[item.name]||"📦"} {item.name}</div><div className="cart-cat">{item.category} • £{item.price.toFixed(2)} each</div></div><div className="qty-control"><button className="qty-btn"onClick={()=>changeQty(item._id,-1)}>−</button><span className="qty-num">{item.qty}</span><button className="qty-btn"onClick={()=>changeQty(item._id,+1)}>+</button></div><div className="cart-price">£{(item.price*item.qty).toFixed(2)}</div><button className="del-btn"onClick={()=>removeFromCart(item._id)}>✕</button></div>;})}<div className="order-box"><div className="order-row"><span>Subtotal ({totalItems} items)</span><span>£{total}</span></div><div className="order-row"><span>Delivery</span><span className="free">🎉 FREE</span></div><div className="order-row"><span>Estimated time</span><span>30–45 min</span></div><div className="order-total"><span>Total</span><span>£{total}</span></div><button className="go-checkout"onClick={goToCheckout}>💳 Proceed to Checkout →</button></div></>)}</div><footer className="footer"><div className="footer-inner"><div><div className="footer-brand">🛒 Ghosia Mini Market</div><p style={{color:"#666",fontSize:15,marginTop:10,fontWeight:700}}>Fresh Nepali, Indian & Asian groceries in Birmingham</p></div><div className="footer-links"><span className="footer-link"onClick={()=>setPage("terms")}>Terms of Service</span><span className="footer-link"onClick={()=>setPage("privacy")}>Privacy Policy</span></div><div className="footer-copy">© 2026 Ghosia Mini Market, Birmingham. All rights reserved.</div></div></footer></>)}
+      {/* SHOP PAGE */}
+      {page==="shop"&&!orderDone&&(<><div className="hero"><div className="hero-badge">🛒 BIRMINGHAM'S FAVOURITE MINI MARKET</div><h1>Fresh Groceries<br/>Delivered Fast 🚚</h1><p className="hero-sub">Quality products straight from Ghosia Mini Market to your door. Same-day delivery available. No login required!</p><div className="search-wrap"><div className="search-box"><input placeholder="🔍  Search milk, rice, spices..."value={search}onChange={e=>setSearch(e.target.value)}/><select value={category}onChange={e=>setCategory(e.target.value)}>{categories.map(c=><option key={c}>{c}</option>)}</select></div></div></div><div className="body"><div className="cat-row">{categories.map(c=>{const emoji={Dairy:"🥛",Bakery:"🍞",Meat:"🥩",Grains:"🌾",Vegetables:"🥕",Oils:"🫒",Tinned:"🥫",Drinks:"🧃",Spices:"🌶️",All:"🏪"};return<button key={c}className={`cat-btn ${category===c?"active":""}`}onClick={()=>setCategory(c)}>{emoji[c]||""} {c}</button>;})}</div><div className="section-header"><div className="section-title">{category==="All"?"🏪 All Products":`${category}`}</div><div className="section-count">{filtered.length} items</div></div>{loading?<div className="spinner"><div className="spin"></div><p style={{color:"#aaa",fontSize:18,fontWeight:800}}>Loading products...</p></div>:filtered.length===0?<div className="empty"><div className="empty-icon">😔</div><h3>Nothing found</h3><p>Try a different search or category</p></div>:<div className="grid">{filtered.map(p=>{const inCart=cartQtyForProduct(p._id);const productImage=getProductImage(p);const productEmoji=PRODUCT_EMOJIS[p.name]||"📦";return<div className="card"key={p._id}>{inCart>0&&<div className="in-cart-badge">{inCart}</div>}<div className="card-thumb"><div className="product-emoji">{productEmoji}</div><img src={productImage}alt={p.name}loading="lazy"/></div><div className="card-body"><div className="card-cat">{p.category}</div><div className="card-name">{p.name}</div><div className="card-foot"><div className="card-price">£{p.price.toFixed(2)}</div><button className="add-btn"onClick={()=>addToCart(p)}>+</button></div></div></div>;})}</div>}{cart.length>0&&(<><div className="divider"/><div className="section-header"><div className="section-title">🧺 Your Cart</div><div className="section-count">{totalItems} items</div></div>{cart.map(item=>{const productImage=getProductImage(item);return<div className="cart-card"key={item._id}><div className="cart-thumb"><img src={productImage}alt={item.name}loading="lazy"/></div><div className="cart-info"><div className="cart-name">{PRODUCT_EMOJIS[item.name]||"📦"} {item.name}</div><div className="cart-cat">{item.category} • £{item.price.toFixed(2)} each</div></div><div className="qty-control"><button className="qty-btn"onClick={()=>changeQty(item._id,-1)}>−</button><span className="qty-num">{item.qty}</span><button className="qty-btn"onClick={()=>changeQty(item._id,+1)}>+</button></div><div className="cart-price">£{(item.price*item.qty).toFixed(2)}</div><button className="del-btn"onClick={()=>removeFromCart(item._id)}>✕</button></div>;})}<div className="order-box"><div className="order-row"><span>Subtotal ({totalItems} items)</span><span>£{subtotal.toFixed(2)}</span></div>{appliedPromo && <div className="order-row"><span>Discount</span><span className="discount">-£{discount.toFixed(2)}</span></div>}<div className="order-row"><span>Delivery</span><span className="free">🎉 FREE</span></div><div className="order-row"><span>Estimated time</span><span>30–45 min</span></div><div className="order-total"><span>Total</span><span>£{total}</span></div><button className="go-checkout"onClick={goToCheckout}>💳 Proceed to Checkout →</button></div></>)}</div><footer className="footer"><div className="footer-inner"><div><div className="footer-brand">🛒 Ghosia Mini Market</div><p style={{color:"#666",fontSize:15,marginTop:10,fontWeight:700}}>Fresh Nepali, Indian & Asian groceries in Birmingham</p></div><div className="footer-links"><span className="footer-link"onClick={()=>setPage("terms")}>Terms of Service</span><span className="footer-link"onClick={()=>setPage("privacy")}>Privacy Policy</span></div><div className="footer-copy">© 2026 Ghosia Mini Market, Birmingham. All rights reserved.</div></div></footer></>)}
     </div>
   );
 }

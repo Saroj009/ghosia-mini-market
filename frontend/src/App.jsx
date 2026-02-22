@@ -51,16 +51,6 @@ const PRODUCT_EMOJIS = {
   "Cola": "🥤", "Sparkling Water": "💧", "Black Pepper": "🌶️", "Turmeric": "🌶️", "Cumin": "🌶️"
 };
 
-// Customer reviews data
-const CUSTOMER_REVIEWS = [
-  { name: "Priya Sharma", rating: 5, date: "2 weeks ago", review: "Best Nepali grocery store in Birmingham! Fresh vegetables and authentic spices. The owner is very friendly and helpful. Highly recommend!" },
-  { name: "Raj Gurung", rating: 5, date: "1 month ago", review: "Finally found a place that sells authentic Nepali products! The basmati rice quality is excellent and prices are very reasonable. Will definitely come back." },
-  { name: "Aisha Patel", rating: 5, date: "3 weeks ago", review: "Great selection of Indian groceries! Fresh vegetables, wide variety of spices, and everything I need for cooking authentic meals. Fast delivery too!" },
-  { name: "Kumar Thapa", rating: 4, date: "1 week ago", review: "Good quality products and convenient location. The store has all Asian essentials. Sometimes gets busy but service is always quick." },
-  { name: "Sarah Ahmed", rating: 5, date: "2 months ago", review: "Love this store! They have everything from fresh produce to specialty ingredients. The staff is always welcoming and helpful. Best prices in Birmingham!" },
-  { name: "Bikash Rai", rating: 5, date: "3 weeks ago", review: "Excellent Nepali mini market! Found all the ingredients I needed for momo and curry. Fresh meat section is great too. Five stars!" }
-];
-
 export default function App() {
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
@@ -91,6 +81,22 @@ export default function App() {
   const [productForm, setProductForm] = useState({ name: "", price: "", category: "", stock: 100, image: "" });
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [adminTab, setAdminTab] = useState("products"); // products, reviews, dashboard
+
+  // Reviews states
+  const [reviews, setReviews] = useState([]);
+  const [editingReview, setEditingReview] = useState(null);
+  const [showAddReview, setShowAddReview] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ name: "", rating: 5, review: "", date: "" });
+
+  // Orders/Sales states (mock data for demo - replace with real API)
+  const [orders, setOrders] = useState([
+    { id: "ORD001", customerName: "John Doe", total: 45.99, items: 5, status: "Completed", date: "2026-02-20" },
+    { id: "ORD002", customerName: "Jane Smith", total: 78.50, items: 8, status: "Completed", date: "2026-02-21" },
+    { id: "ORD003", customerName: "Bob Wilson", total: 32.25, items: 3, status: "Pending", date: "2026-02-22" },
+    { id: "ORD004", customerName: "Alice Brown", total: 156.80, items: 12, status: "Completed", date: "2026-02-22" },
+    { id: "ORD005", customerName: "Charlie Davis", total: 91.40, items: 7, status: "Completed", date: "2026-02-22" },
+  ]);
 
   const PROMO_CODES = {
     "WELCOME10": { discount: 10, type: "percentage", description: "10% off your order" },
@@ -98,6 +104,42 @@ export default function App() {
     "FREESHIP": { discount: 0, type: "shipping", description: "Free shipping (already free!)" },
     "FIRST20": { discount: 20, type: "percentage", description: "20% off first order" },
   };
+
+  // Load reviews from localStorage
+  useEffect(() => {
+    const savedReviews = localStorage.getItem('ghosia_reviews');
+    if (savedReviews) {
+      try {
+        setReviews(JSON.parse(savedReviews));
+      } catch (e) {
+        console.error('Failed to parse reviews:', e);
+        // Default reviews if parse fails
+        setReviews([
+          { id: 1, name: "Priya Sharma", rating: 5, date: "2 weeks ago", review: "Best Nepali grocery store in Birmingham! Fresh vegetables and authentic spices. The owner is very friendly and helpful. Highly recommend!" },
+          { id: 2, name: "Raj Gurung", rating: 5, date: "1 month ago", review: "Finally found a place that sells authentic Nepali products! The basmati rice quality is excellent and prices are very reasonable. Will definitely come back." },
+          { id: 3, name: "Aisha Patel", rating: 5, date: "3 weeks ago", review: "Great selection of Indian groceries! Fresh vegetables, wide variety of spices, and everything I need for cooking authentic meals. Fast delivery too!" },
+          { id: 4, name: "Kumar Thapa", rating: 4, date: "1 week ago", review: "Good quality products and convenient location. The store has all Asian essentials. Sometimes gets busy but service is always quick." },
+          { id: 5, name: "Sarah Ahmed", rating: 5, date: "2 months ago", review: "Love this store! They have everything from fresh produce to specialty ingredients. The staff is always welcoming and helpful. Best prices in Birmingham!" },
+          { id: 6, name: "Bikash Rai", rating: 5, date: "3 weeks ago", review: "Excellent Nepali mini market! Found all the ingredients I needed for momo and curry. Fresh meat section is great too. Five stars!" }
+        ]);
+      }
+    } else {
+      // Default reviews
+      setReviews([
+        { id: 1, name: "Priya Sharma", rating: 5, date: "2 weeks ago", review: "Best Nepali grocery store in Birmingham! Fresh vegetables and authentic spices. The owner is very friendly and helpful. Highly recommend!" },
+        { id: 2, name: "Raj Gurung", rating: 5, date: "1 month ago", review: "Finally found a place that sells authentic Nepali products! The basmati rice quality is excellent and prices are very reasonable. Will definitely come back." },
+        { id: 3, name: "Aisha Patel", rating: 5, date: "3 weeks ago", review: "Great selection of Indian groceries! Fresh vegetables, wide variety of spices, and everything I need for cooking authentic meals. Fast delivery too!" },
+        { id: 4, name: "Kumar Thapa", rating: 4, date: "1 week ago", review: "Good quality products and convenient location. The store has all Asian essentials. Sometimes gets busy but service is always quick." },
+        { id: 5, name: "Sarah Ahmed", rating: 5, date: "2 months ago", review: "Love this store! They have everything from fresh produce to specialty ingredients. The staff is always welcoming and helpful. Best prices in Birmingham!" },
+        { id: 6, name: "Bikash Rai", rating: 5, date: "3 weeks ago", review: "Excellent Nepali mini market! Found all the ingredients I needed for momo and curry. Fresh meat section is great too. Five stars!" }
+      ]);
+    }
+  }, []);
+
+  // Save reviews to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('ghosia_reviews', JSON.stringify(reviews));
+  }, [reviews]);
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -248,6 +290,17 @@ export default function App() {
       }
     }
 
+    // Add order to mock orders list
+    const newOrder = {
+      id: `ORD${String(orders.length + 1).padStart(3, '0')}`,
+      customerName: form.name,
+      total: parseFloat(total),
+      items: totalItems,
+      status: "Pending",
+      date: new Date().toISOString().split('T')[0]
+    };
+    setOrders([...orders, newOrder]);
+
     setOrderDone(true); 
     setCart([]); 
     setForm({ name:"", email:"", address:"", phone:"", card:"", expiry:"", cvv:"" });
@@ -331,6 +384,34 @@ export default function App() {
     } catch (error) { showToast("⚠️ Failed to delete product"); }
   }
 
+  // Review management functions
+  function handleAddReview(e) {
+    e.preventDefault();
+    const newReview = {
+      id: reviews.length > 0 ? Math.max(...reviews.map(r => r.id)) + 1 : 1,
+      name: reviewForm.name,
+      rating: parseInt(reviewForm.rating),
+      date: reviewForm.date || "Just now",
+      review: reviewForm.review
+    };
+    setReviews([...reviews, newReview]);
+    setReviewForm({ name: "", rating: 5, review: "", date: "" });
+    setShowAddReview(false);
+    showToast("✅ Review added successfully!");
+  }
+
+  function handleUpdateReview(review) {
+    setReviews(reviews.map(r => r.id === review.id ? review : r));
+    setEditingReview(null);
+    showToast("✅ Review updated successfully!");
+  }
+
+  function handleDeleteReview(id) {
+    if (!confirm("Are you sure you want to delete this review?")) return;
+    setReviews(reviews.filter(r => r.id !== id));
+    showToast("✅ Review deleted successfully!");
+  }
+
   // Render star rating
   function renderStars(rating) {
     return (
@@ -343,6 +424,14 @@ export default function App() {
       </div>
     );
   }
+
+  // Calculate dashboard stats
+  const totalSales = orders.reduce((sum, order) => sum + order.total, 0);
+  const totalOrders = orders.length;
+  const completedOrders = orders.filter(o => o.status === "Completed").length;
+  const pendingOrders = orders.filter(o => o.status === "Pending").length;
+  const averageOrderValue = totalOrders > 0 ? (totalSales / totalOrders).toFixed(2) : 0;
+  const averageRating = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) : 0;
 
   return (
     <div style={{fontFamily:"'Inter','Segoe UI',sans-serif", background:"#0f0f0f", minHeight:"100vh", color:"#fff"}}>
@@ -406,6 +495,9 @@ export default function App() {
         .admin-wrap{max-width:1400px;margin:0 auto;padding:60px 28px;}
         .admin-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:40px;}
         .admin-title{font-size:42px;font-weight:900;color:#fff;display:flex;align-items:center;gap:16px;}
+        .admin-tabs{display:flex;gap:12px;margin-bottom:40px;background:rgba(255,255,255,0.05);border-radius:50px;padding:8px;border:2px solid rgba(255,255,255,0.1);}
+        .admin-tab{flex:1;padding:16px 24px;border:none;background:transparent;color:#aaa;font-weight:800;font-size:15px;border-radius:50px;cursor:pointer;transition:all 0.3s;}
+        .admin-tab.active{background:#fff;color:#0f0f0f;box-shadow:0 4px 20px rgba(255,255,255,0.3);}
         .admin-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:40px;}
         .stat-card{background:rgba(30,30,30,0.9);border:2px solid rgba(255,255,255,0.15);border-radius:20px;padding:24px;text-align:center;}
         .stat-value{font-size:36px;font-weight:900;color:#fff;margin-bottom:8px;}
@@ -417,6 +509,8 @@ export default function App() {
         .table tr:hover{background:rgba(255,255,255,0.05);}
         .edit-input{background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 12px;color:#fff;font-size:14px;font-weight:600;outline:none;width:100%;min-width:150px;}
         .edit-input:focus{border-color:#fff;}
+        .edit-textarea{background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 12px;color:#fff;font-size:14px;font-weight:600;outline:none;width:100%;min-width:200px;min-height:80px;resize:vertical;}
+        .edit-textarea:focus{border-color:#fff;}
         .action-btn{padding:8px 16px;border:none;border-radius:8px;font-weight:800;font-size:13px;cursor:pointer;transition:all 0.3s;margin-right:8px;white-space:nowrap;}
         .btn-edit{background:rgba(59,130,246,0.15);border:2px solid #3b82f6;color:#3b82f6;}
         .btn-edit:hover{background:rgba(59,130,246,0.25);}
@@ -436,6 +530,9 @@ export default function App() {
         .upload-btn:disabled{opacity:0.5;cursor:not-allowed;}
         .image-options{display:flex;flex-direction:column;gap:12px;}
         .or-divider{text-align:center;color:#666;font-size:14px;font-weight:700;margin:12px 0;}
+        .status-badge{padding:6px 14px;border-radius:50px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;}
+        .status-completed{background:rgba(16,185,129,0.15);border:2px solid #10b981;color:#10b981;}
+        .status-pending{background:rgba(251,191,36,0.15);border:2px solid #fbbf24;color:#fbbf24;}
         .auth-wrap{min-height:calc(100vh - 80px);display:flex;align-items:center;justify-content:center;padding:40px 20px;}
         .auth-box{background:rgba(30,30,30,0.95);border:2px solid rgba(255,255,255,0.2);border-radius:32px;padding:50px 44px;width:100%;max-width:520px;box-shadow:0 20px 80px rgba(0,0,0,0.8);}
         .auth-header{text-align:center;margin-bottom:36px;}
@@ -589,6 +686,8 @@ export default function App() {
           .promo-input-group{flex-direction:column;}
           .reviews-grid{grid-template-columns:1fr;}
           .reviews-title{font-size:36px;}
+          .admin-tabs{flex-direction:column;}
+          .admin-stats{grid-template-columns:1fr;}
         }
       `}</style>
 
@@ -618,7 +717,7 @@ export default function App() {
                 👤 {user.name} {user.isAdmin && "⚡"}
               </div>
               {user.isAdmin && (
-                <button className="nav-btn admin-btn" onClick={() => setPage("admin")}>
+                <button className="nav-btn admin-btn" onClick={() => { setPage("admin"); setAdminTab("dashboard"); }}>
                   ⚙️ Admin Panel
                 </button>
               )}
@@ -640,7 +739,7 @@ export default function App() {
       {/* Toast Notification */}
       {toast && <div className={`toast show ${toast.includes("⚠️") ? "warn" : ""}`}>{toast}</div>}
 
-      {/* Main Content Based on Page */}
+      {/* Main Content - Auth Page */}
       {page === "auth" && !user && (
         <div className="auth-wrap">
           <div className="auth-box">
@@ -753,6 +852,7 @@ export default function App() {
         </div>
       )}
 
+      {/* Main Shop Page */}
       {page === "shop" && !orderDone && (
         <>
           <div className="hero">
@@ -939,7 +1039,7 @@ export default function App() {
             </div>
           </div>
 
-          {/* Reviews Section */}
+          {/* Customer Reviews Section */}
           <div className="reviews-section">
             <div className="reviews-header">
               <h2 className="reviews-title">
@@ -953,8 +1053,8 @@ export default function App() {
             </div>
 
             <div className="reviews-grid">
-              {CUSTOMER_REVIEWS.map((review, index) => (
-                <div key={index} className="review-card">
+              {reviews.map((review) => (
+                <div key={review.id} className="review-card">
                   <div className="review-header">
                     <div className="reviewer-info">
                       <h3>{review.name}</h3>
@@ -970,6 +1070,7 @@ export default function App() {
         </>
       )}
 
+      {/* About Page */}
       {page === "about" && (
         <div className="content-page">
           <h1 className="page-title">
@@ -1016,6 +1117,7 @@ export default function App() {
         </div>
       )}
 
+      {/* Contact Page */}
       {page === "contact" && (
         <div className="content-page">
           <h1 className="page-title">
@@ -1083,6 +1185,7 @@ export default function App() {
         </div>
       )}
 
+      {/* Deals Page */}
       {page === "deals" && (
         <div className="content-page">
           <h1 className="page-title">
@@ -1110,6 +1213,7 @@ export default function App() {
         </div>
       )}
 
+      {/* Orders Page */}
       {page === "orders" && (
         <div className="content-page">
           <h1 className="page-title">
@@ -1149,6 +1253,7 @@ export default function App() {
         </div>
       )}
 
+      {/* Saved Items Page */}
       {page === "saved" && (
         <div className="content-page">
           <h1 className="page-title">
@@ -1188,6 +1293,7 @@ export default function App() {
         </div>
       )}
 
+      {/* Checkout Page */}
       {page === "checkout" && !orderDone && (
         <div className="checkout-wrap">
           <button className="back-btn" onClick={() => setPage("shop")}>
@@ -1346,6 +1452,7 @@ export default function App() {
         </div>
       )}
 
+      {/* Order Success */}
       {orderDone && (
         <div className="success-wrap">
           <div className="success-box">
@@ -1368,245 +1475,533 @@ export default function App() {
         </div>
       )}
 
+      {/* Admin Panel */}
       {page === "admin" && user?.isAdmin && (
         <div className="admin-wrap">
           <div className="admin-header">
             <h1 className="admin-title">
               <span>⚙️</span> Admin Dashboard
             </h1>
+          </div>
+
+          {/* Admin Tabs */}
+          <div className="admin-tabs">
             <button
-              className="nav-btn"
-              onClick={() => setShowAddProduct(!showAddProduct)}
+              className={`admin-tab ${adminTab === "dashboard" ? "active" : ""}`}
+              onClick={() => setAdminTab("dashboard")}
             >
-              {showAddProduct ? "❌ Cancel" : "➕ Add New Product"}
+              📊 Dashboard
+            </button>
+            <button
+              className={`admin-tab ${adminTab === "products" ? "active" : ""}`}
+              onClick={() => setAdminTab("products")}
+            >
+              📦 Products
+            </button>
+            <button
+              className={`admin-tab ${adminTab === "reviews" ? "active" : ""}`}
+              onClick={() => setAdminTab("reviews")}
+            >
+              ⭐ Reviews
             </button>
           </div>
 
-          <div className="admin-stats">
-            <div className="stat-card">
-              <div className="stat-value">{products.length}</div>
-              <div className="stat-label">Total Products</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-value">{categories.length - 1}</div>
-              <div className="stat-label">Categories</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-value">{products.reduce((sum, p) => sum + p.stock, 0)}</div>
-              <div className="stat-label">Total Stock</div>
-            </div>
-          </div>
+          {/* Dashboard Tab */}
+          {adminTab === "dashboard" && (
+            <>
+              <div className="admin-stats">
+                <div className="stat-card">
+                  <div className="stat-value">£{totalSales.toFixed(2)}</div>
+                  <div className="stat-label">Total Sales</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-value">{totalOrders}</div>
+                  <div className="stat-label">Total Orders</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-value">{completedOrders}</div>
+                  <div className="stat-label">Completed</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-value">{pendingOrders}</div>
+                  <div className="stat-label">Pending</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-value">£{averageOrderValue}</div>
+                  <div className="stat-label">Avg Order Value</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-value">{averageRating} ⭐</div>
+                  <div className="stat-label">Avg Rating</div>
+                </div>
+              </div>
 
-          {showAddProduct && (
-            <div className="add-product-form">
-              <h3 style={{ fontSize: "24px", fontWeight: 900, marginBottom: "24px", color: "#fff" }}>
-                ➕ Add New Product
+              <h3 style={{ fontSize: "24px", fontWeight: 900, marginBottom: "20px", color: "#fff" }}>
+                📦 Recent Orders
               </h3>
-              <form onSubmit={handleAddProduct}>
-                <div className="form-grid">
-                  <div className="f-group">
-                    <label className="f-label">Product Name</label>
-                    <input
-                      className="f-input"
-                      required
-                      value={productForm.name}
-                      onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="f-group">
-                    <label className="f-label">Price (£)</label>
-                    <input
-                      className="f-input"
-                      type="number"
-                      step="0.01"
-                      required
-                      value={productForm.price}
-                      onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="f-group">
-                    <label className="f-label">Category</label>
-                    <input
-                      className="f-input"
-                      required
-                      value={productForm.category}
-                      onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="f-group">
-                    <label className="f-label">Stock</label>
-                    <input
-                      className="f-input"
-                      type="number"
-                      required
-                      value={productForm.stock}
-                      onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="f-group">
-                  <label className="f-label">Product Image</label>
-                  <div className="image-options">
-                    <div className="upload-btn-wrapper">
-                      <button className="upload-btn" type="button" disabled={uploading}>
-                        {uploading ? "⏳ Uploading..." : "📤 Upload Image"}
-                      </button>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleImageUpload(e, false)}
-                        disabled={uploading}
-                      />
-                    </div>
-                    <div className="or-divider">OR</div>
-                    <input
-                      className="f-input"
-                      placeholder="Paste image URL"
-                      value={productForm.image}
-                      onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
-                    />
-                  </div>
-                  {productForm.image && (
-                    <img src={productForm.image} alt="Preview" className="img-preview" />
-                  )}
-                </div>
-
-                <button type="submit" className="auth-btn">
-                  ✨ Add Product
-                </button>
-              </form>
-            </div>
+              <div className="admin-table">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Order ID</th>
+                      <th>Customer</th>
+                      <th>Items</th>
+                      <th>Total</th>
+                      <th>Date</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.slice().reverse().map((order) => (
+                      <tr key={order.id}>
+                        <td>{order.id}</td>
+                        <td>{order.customerName}</td>
+                        <td>{order.items}</td>
+                        <td>£{order.total.toFixed(2)}</td>
+                        <td>{order.date}</td>
+                        <td>
+                          <span className={`status-badge ${order.status === "Completed" ? "status-completed" : "status-pending"}`}>
+                            {order.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
 
-          <div className="admin-table">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Image</th>
-                  <th>Name</th>
-                  <th>Category</th>
-                  <th>Price</th>
-                  <th>Stock</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((p) =>
-                  editingProduct?._id === p._id ? (
-                    <tr key={p._id}>
-                      <td>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                          {editingProduct.image && (
-                            <img
-                              src={editingProduct.image}
-                              alt="Preview"
-                              style={{ width: "60px", height: "60px", objectFit: "cover", borderRadius: "8px" }}
-                            />
-                          )}
-                          <div className="upload-btn-wrapper">
-                            <button className="upload-btn" type="button" disabled={uploading}>
-                              {uploading ? "⏳" : "📤"}
-                            </button>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => handleImageUpload(e, true)}
-                              disabled={uploading}
-                            />
-                          </div>
-                        </div>
-                      </td>
-                      <td>
+          {/* Products Tab */}
+          {adminTab === "products" && (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
+                <h3 style={{ fontSize: "24px", fontWeight: 900, color: "#fff" }}>
+                  📦 Product Management
+                </h3>
+                <button
+                  className="nav-btn"
+                  onClick={() => setShowAddProduct(!showAddProduct)}
+                >
+                  {showAddProduct ? "❌ Cancel" : "➕ Add New Product"}
+                </button>
+              </div>
+
+              <div className="admin-stats">
+                <div className="stat-card">
+                  <div className="stat-value">{products.length}</div>
+                  <div className="stat-label">Total Products</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-value">{categories.length - 1}</div>
+                  <div className="stat-label">Categories</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-value">{products.reduce((sum, p) => sum + p.stock, 0)}</div>
+                  <div className="stat-label">Total Stock</div>
+                </div>
+              </div>
+
+              {showAddProduct && (
+                <div className="add-product-form">
+                  <h3 style={{ fontSize: "24px", fontWeight: 900, marginBottom: "24px", color: "#fff" }}>
+                    ➕ Add New Product
+                  </h3>
+                  <form onSubmit={handleAddProduct}>
+                    <div className="form-grid">
+                      <div className="f-group">
+                        <label className="f-label">Product Name</label>
                         <input
-                          className="edit-input"
-                          value={editingProduct.name}
-                          onChange={(e) =>
-                            setEditingProduct({ ...editingProduct, name: e.target.value })
-                          }
+                          className="f-input"
+                          required
+                          value={productForm.name}
+                          onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
                         />
-                      </td>
-                      <td>
+                      </div>
+
+                      <div className="f-group">
+                        <label className="f-label">Price (£)</label>
                         <input
-                          className="edit-input"
-                          value={editingProduct.category}
-                          onChange={(e) =>
-                            setEditingProduct({ ...editingProduct, category: e.target.value })
-                          }
-                        />
-                      </td>
-                      <td>
-                        <input
-                          className="edit-input"
+                          className="f-input"
                           type="number"
                           step="0.01"
-                          value={editingProduct.price}
-                          onChange={(e) =>
-                            setEditingProduct({ ...editingProduct, price: e.target.value })
-                          }
+                          required
+                          value={productForm.price}
+                          onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
                         />
-                      </td>
-                      <td>
+                      </div>
+
+                      <div className="f-group">
+                        <label className="f-label">Category</label>
                         <input
-                          className="edit-input"
+                          className="f-input"
+                          required
+                          value={productForm.category}
+                          onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="f-group">
+                        <label className="f-label">Stock</label>
+                        <input
+                          className="f-input"
                           type="number"
-                          value={editingProduct.stock}
-                          onChange={(e) =>
-                            setEditingProduct({ ...editingProduct, stock: e.target.value })
-                          }
+                          required
+                          value={productForm.stock}
+                          onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
                         />
-                      </td>
-                      <td>
-                        <button
-                          className="action-btn btn-save"
-                          onClick={() => handleUpdateProduct(editingProduct)}
-                        >
-                          💾 Save
-                        </button>
-                        <button
-                          className="action-btn btn-cancel"
-                          onClick={() => setEditingProduct(null)}
-                        >
-                          ❌ Cancel
-                        </button>
-                      </td>
-                    </tr>
-                  ) : (
-                    <tr key={p._id}>
-                      <td>
-                        <img
-                          src={getProductImage(p)}
-                          alt={p.name}
-                          style={{ width: "60px", height: "60px", objectFit: "cover", borderRadius: "8px" }}
+                      </div>
+                    </div>
+
+                    <div className="f-group">
+                      <label className="f-label">Product Image</label>
+                      <div className="image-options">
+                        <div className="upload-btn-wrapper">
+                          <button className="upload-btn" type="button" disabled={uploading}>
+                            {uploading ? "⏳ Uploading..." : "📤 Upload Image"}
+                          </button>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleImageUpload(e, false)}
+                            disabled={uploading}
+                          />
+                        </div>
+                        <div className="or-divider">OR</div>
+                        <input
+                          className="f-input"
+                          placeholder="Paste image URL"
+                          value={productForm.image}
+                          onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
                         />
-                      </td>
-                      <td>{p.name}</td>
-                      <td>{p.category}</td>
-                      <td>£{p.price.toFixed(2)}</td>
-                      <td>{p.stock}</td>
-                      <td>
-                        <button
-                          className="action-btn btn-edit"
-                          onClick={() => setEditingProduct({ ...p })}
-                        >
-                          ✏️ Edit
-                        </button>
-                        <button
-                          className="action-btn btn-delete"
-                          onClick={() => handleDeleteProduct(p._id)}
-                        >
-                          🗑️ Delete
-                        </button>
-                      </td>
+                      </div>
+                      {productForm.image && (
+                        <img src={productForm.image} alt="Preview" className="img-preview" />
+                      )}
+                    </div>
+
+                    <button type="submit" className="auth-btn">
+                      ✨ Add Product
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              <div className="admin-table">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Image</th>
+                      <th>Name</th>
+                      <th>Category</th>
+                      <th>Price</th>
+                      <th>Stock</th>
+                      <th>Actions</th>
                     </tr>
-                  )
-                )}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody>
+                    {products.map((p) =>
+                      editingProduct?._id === p._id ? (
+                        <tr key={p._id}>
+                          <td>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                              {editingProduct.image && (
+                                <img
+                                  src={editingProduct.image}
+                                  alt="Preview"
+                                  style={{ width: "60px", height: "60px", objectFit: "cover", borderRadius: "8px" }}
+                                />
+                              )}
+                              <div className="upload-btn-wrapper">
+                                <button className="upload-btn" type="button" disabled={uploading}>
+                                  {uploading ? "⏳" : "📤"}
+                                </button>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => handleImageUpload(e, true)}
+                                  disabled={uploading}
+                                />
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <input
+                              className="edit-input"
+                              value={editingProduct.name}
+                              onChange={(e) =>
+                                setEditingProduct({ ...editingProduct, name: e.target.value })
+                              }
+                            />
+                          </td>
+                          <td>
+                            <input
+                              className="edit-input"
+                              value={editingProduct.category}
+                              onChange={(e) =>
+                                setEditingProduct({ ...editingProduct, category: e.target.value })
+                              }
+                            />
+                          </td>
+                          <td>
+                            <input
+                              className="edit-input"
+                              type="number"
+                              step="0.01"
+                              value={editingProduct.price}
+                              onChange={(e) =>
+                                setEditingProduct({ ...editingProduct, price: e.target.value })
+                              }
+                            />
+                          </td>
+                          <td>
+                            <input
+                              className="edit-input"
+                              type="number"
+                              value={editingProduct.stock}
+                              onChange={(e) =>
+                                setEditingProduct({ ...editingProduct, stock: e.target.value })
+                              }
+                            />
+                          </td>
+                          <td>
+                            <button
+                              className="action-btn btn-save"
+                              onClick={() => handleUpdateProduct(editingProduct)}
+                            >
+                              💾 Save
+                            </button>
+                            <button
+                              className="action-btn btn-cancel"
+                              onClick={() => setEditingProduct(null)}
+                            >
+                              ❌ Cancel
+                            </button>
+                          </td>
+                        </tr>
+                      ) : (
+                        <tr key={p._id}>
+                          <td>
+                            <img
+                              src={getProductImage(p)}
+                              alt={p.name}
+                              style={{ width: "60px", height: "60px", objectFit: "cover", borderRadius: "8px" }}
+                            />
+                          </td>
+                          <td>{p.name}</td>
+                          <td>{p.category}</td>
+                          <td>£{p.price.toFixed(2)}</td>
+                          <td>{p.stock}</td>
+                          <td>
+                            <button
+                              className="action-btn btn-edit"
+                              onClick={() => setEditingProduct({ ...p })}
+                            >
+                              ✏️ Edit
+                            </button>
+                            <button
+                              className="action-btn btn-delete"
+                              onClick={() => handleDeleteProduct(p._id)}
+                            >
+                              🗑️ Delete
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+
+          {/* Reviews Tab */}
+          {adminTab === "reviews" && (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
+                <h3 style={{ fontSize: "24px", fontWeight: 900, color: "#fff" }}>
+                  ⭐ Customer Reviews Management
+                </h3>
+                <button
+                  className="nav-btn"
+                  onClick={() => setShowAddReview(!showAddReview)}
+                >
+                  {showAddReview ? "❌ Cancel" : "➕ Add Review"}
+                </button>
+              </div>
+
+              <div className="admin-stats">
+                <div className="stat-card">
+                  <div className="stat-value">{reviews.length}</div>
+                  <div className="stat-label">Total Reviews</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-value">{averageRating} ⭐</div>
+                  <div className="stat-label">Average Rating</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-value">{reviews.filter(r => r.rating === 5).length}</div>
+                  <div className="stat-label">5-Star Reviews</div>
+                </div>
+              </div>
+
+              {showAddReview && (
+                <div className="add-product-form">
+                  <h3 style={{ fontSize: "24px", fontWeight: 900, marginBottom: "24px", color: "#fff" }}>
+                    ➕ Add New Review
+                  </h3>
+                  <form onSubmit={handleAddReview}>
+                    <div className="form-grid">
+                      <div className="f-group">
+                        <label className="f-label">Customer Name</label>
+                        <input
+                          className="f-input"
+                          required
+                          value={reviewForm.name}
+                          onChange={(e) => setReviewForm({ ...reviewForm, name: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="f-group">
+                        <label className="f-label">Rating (1-5)</label>
+                        <input
+                          className="f-input"
+                          type="number"
+                          min="1"
+                          max="5"
+                          required
+                          value={reviewForm.rating}
+                          onChange={(e) => setReviewForm({ ...reviewForm, rating: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="f-group">
+                        <label className="f-label">Date/Time Ago</label>
+                        <input
+                          className="f-input"
+                          placeholder="e.g., 2 weeks ago, Just now"
+                          value={reviewForm.date}
+                          onChange={(e) => setReviewForm({ ...reviewForm, date: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="f-group">
+                      <label className="f-label">Review Text</label>
+                      <textarea
+                        className="edit-textarea"
+                        required
+                        value={reviewForm.review}
+                        onChange={(e) => setReviewForm({ ...reviewForm, review: e.target.value })}
+                      />
+                    </div>
+
+                    <button type="submit" className="auth-btn">
+                      ✨ Add Review
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              <div className="admin-table">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Customer</th>
+                      <th>Rating</th>
+                      <th>Date</th>
+                      <th>Review</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reviews.map((r) =>
+                      editingReview?.id === r.id ? (
+                        <tr key={r.id}>
+                          <td>
+                            <input
+                              className="edit-input"
+                              value={editingReview.name}
+                              onChange={(e) =>
+                                setEditingReview({ ...editingReview, name: e.target.value })
+                              }
+                            />
+                          </td>
+                          <td>
+                            <input
+                              className="edit-input"
+                              type="number"
+                              min="1"
+                              max="5"
+                              value={editingReview.rating}
+                              onChange={(e) =>
+                                setEditingReview({ ...editingReview, rating: parseInt(e.target.value) })
+                              }
+                            />
+                          </td>
+                          <td>
+                            <input
+                              className="edit-input"
+                              value={editingReview.date}
+                              onChange={(e) =>
+                                setEditingReview({ ...editingReview, date: e.target.value })
+                              }
+                            />
+                          </td>
+                          <td>
+                            <textarea
+                              className="edit-textarea"
+                              value={editingReview.review}
+                              onChange={(e) =>
+                                setEditingReview({ ...editingReview, review: e.target.value })
+                              }
+                            />
+                          </td>
+                          <td>
+                            <button
+                              className="action-btn btn-save"
+                              onClick={() => handleUpdateReview(editingReview)}
+                            >
+                              💾 Save
+                            </button>
+                            <button
+                              className="action-btn btn-cancel"
+                              onClick={() => setEditingReview(null)}
+                            >
+                              ❌ Cancel
+                            </button>
+                          </td>
+                        </tr>
+                      ) : (
+                        <tr key={r.id}>
+                          <td>{r.name}</td>
+                          <td>{renderStars(r.rating)}</td>
+                          <td>{r.date}</td>
+                          <td style={{ maxWidth: "300px", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {r.review}
+                          </td>
+                          <td>
+                            <button
+                              className="action-btn btn-edit"
+                              onClick={() => setEditingReview({ ...r })}
+                            >
+                              ✏️ Edit
+                            </button>
+                            <button
+                              className="action-btn btn-delete"
+                              onClick={() => handleDeleteReview(r.id)}
+                            >
+                              🗑️ Delete
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </div>
       )}
 

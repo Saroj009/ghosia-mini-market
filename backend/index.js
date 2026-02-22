@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -16,8 +17,13 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Middleware
-app.use(cors());
+// Middleware - CORS configuration with environment variable
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use('/uploads', express.static(uploadsDir));
 
@@ -47,8 +53,8 @@ const upload = multer({
   }
 });
 
-// MongoDB Atlas Connection
-const MONGODB_URI = 'mongodb+srv://sjha5791_db_user:jsz2U1xopubxz8tY@cluster0.oaxjmmf.mongodb.net/grocery_db?retryWrites=true&w=majority';
+// MongoDB Atlas Connection - Now using environment variable!
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://sjha5791_db_user:jsz2U1xopubxz8tY@cluster0.oaxjmmf.mongodb.net/grocery_db?retryWrites=true&w=majority';
 
 mongoose.connect(MONGODB_URI)
   .then(() => console.log('✅ MongoDB Atlas connected successfully'))
@@ -79,8 +85,12 @@ const productSchema = new mongoose.Schema({
 
 const Product = mongoose.model('Product', productSchema);
 
-// JWT Secret
-const JWT_SECRET = 'your-secret-key-change-in-production';
+// JWT Secret - Now using environment variable!
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-change-in-production';
+
+if (!process.env.JWT_SECRET) {
+  console.warn('⚠️  WARNING: JWT_SECRET not set in environment variables! Using fallback.');
+}
 
 // Auth Middleware
 const authMiddleware = async (req, res, next) => {
@@ -206,14 +216,15 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-// IMAGE UPLOAD endpoint
+// IMAGE UPLOAD endpoint - Now using environment variable for backend URL!
 app.post('/api/admin/upload', authMiddleware, adminMiddleware, upload.single('image'), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
     
-    const imageUrl = `http://localhost:${PORT}/uploads/${req.file.filename}`;
+    const backendUrl = process.env.BACKEND_URL || `http://localhost:${PORT}`;
+    const imageUrl = `${backendUrl}/uploads/${req.file.filename}`;
     console.log('Image uploaded:', imageUrl);
     
     res.json({ imageUrl });
@@ -352,4 +363,6 @@ seedProducts();
 
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
+  console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
 });

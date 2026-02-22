@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 const EMOJI = { Dairy:"🥛", Bakery:"🍞", Meat:"🥩", Grains:"🌾", Vegetables:"🥦", Oils:"🫙", Tinned:"🥫", Drinks:"🧃", Spices:"🌶️", All:"🏪" };
+const API_URL = "http://localhost:3000/api";
 
 export default function App() {
   const [products, setProducts] = useState([]);
@@ -12,9 +13,34 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ name:"", address:"", phone:"", card:"", expiry:"", cvv:"" });
   const [toast, setToast] = useState("");
+  
+  // Auth state
+  const [user, setUser] = useState(null);
+  const [authForm, setAuthForm] = useState({ name:"", email:"", password:"", phone:"", address:"" });
+  const [authMode, setAuthMode] = useState("login"); // login, register, admin
+  const [authLoading, setAuthLoading] = useState(false);
+
+  // Check if user is logged in on mount
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetch(`${API_URL}/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.error) {
+          setUser(data);
+        } else {
+          localStorage.removeItem('token');
+        }
+      })
+      .catch(() => localStorage.removeItem('token'));
+    }
+  }, []);
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/products")
+    fetch(`${API_URL}/products`)
       .then(r => r.json())
       .then(data => { setProducts(data); setLoading(false); })
       .catch(err => { console.error(err); setLoading(false); });
@@ -26,14 +52,18 @@ export default function App() {
     (category === "All" || p.category === category)
   );
 
+  function showToast(msg) {
+    setToast(msg);
+    setTimeout(() => setToast(""), 2500);
+  }
+
   function addToCart(product) {
     setCart(old => {
       const ex = old.find(i => i.id === product.id);
       if (ex) return old.map(i => i.id === product.id ? {...i, qty: i.qty+1} : i);
       return [...old, {...product, qty:1}];
     });
-    setToast(`✔ ${product.name} added!`);
-    setTimeout(() => setToast(""), 2200);
+    showToast(`✔ ${product.name} added!`);
   }
 
   function changeQty(id, d) {
@@ -47,8 +77,7 @@ export default function App() {
 
   function placeOrder() {
     if (!form.name || !form.address || !form.phone || !form.card) {
-      setToast("⚠️ Please fill in all fields");
-      setTimeout(() => setToast(""), 2500);
+      showToast("⚠️ Please fill in all fields");
       return;
     }
     setOrderDone(true);
@@ -61,6 +90,47 @@ export default function App() {
     return item ? item.qty : 0;
   };
 
+  // Auth functions
+  async function handleAuth(e) {
+    e.preventDefault();
+    setAuthLoading(true);
+
+    const endpoint = authMode === "register" ? "/auth/register" : "/auth/login";
+    const body = authMode === "register" 
+      ? authForm 
+      : { email: authForm.email, password: authForm.password };
+
+    try {
+      const res = await fetch(`${API_URL}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      
+      const data = await res.json();
+      
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        setUser(data.user);
+        setPage('shop');
+        showToast(`✅ Welcome ${data.user.name}!`);
+        setAuthForm({ name:"", email:"", password:"", phone:"", address:"" });
+      } else {
+        showToast(`⚠️ ${data.error || 'Authentication failed'}`);
+      }
+    } catch (error) {
+      showToast("⚠️ Network error. Please try again.");
+    }
+    setAuthLoading(false);
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('token');
+    setUser(null);
+    setCart([]);
+    showToast("👋 Logged out successfully");
+  }
+
   return (
     <div style={{fontFamily:"'Segoe UI',Arial,sans-serif", background:"#0f1117", minHeight:"100vh", color:"#fff"}}>
       <style>{`
@@ -72,9 +142,39 @@ export default function App() {
         .logo-text{font-size:20px;font-weight:900;letter-spacing:-0.5px;color:#fff;}
         .logo-text span{color:#2ecc71;}
         .logo-sub{font-size:10px;color:#4a5568;letter-spacing:1px;text-transform:uppercase;margin-top:1px;}
+        .nav-right{display:flex;align-items:center;gap:12px;}
+        .user-badge{background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.2);color:#2ecc71;padding:8px 16px;border-radius:50px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;}
+        .admin-badge{background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);color:#fbbf24;}
+        .logout-btn{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:#ef4444;padding:8px 16px;border-radius:50px;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;}
+        .logout-btn:hover{background:rgba(239,68,68,0.2);}
         .cart-pill{background:linear-gradient(135deg,#2ecc71,#1a9e55);color:#0f1117;border:none;border-radius:50px;padding:10px 22px;font-weight:800;cursor:pointer;font-size:14px;display:flex;align-items:center;gap:8px;transition:all 0.2s;box-shadow:0 4px 20px rgba(46,204,113,0.3);}
         .cart-pill:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(46,204,113,0.45);}
         .badge{background:#0f1117;color:#2ecc71;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;}
+        .auth-wrap{min-height:calc(100vh - 68px);display:flex;align-items:center;justify-content:center;padding:40px 20px;background:radial-gradient(circle at 50% 30%,rgba(46,204,113,0.08),transparent 60%);}
+        .auth-box{background:#1a1d27;border:1px solid rgba(46,204,113,0.15);border-radius:24px;padding:48px 40px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+        .auth-header{text-align:center;margin-bottom:32px;}
+        .auth-icon{font-size:64px;margin-bottom:16px;}
+        .auth-title{font-size:28px;font-weight:900;color:#fff;margin-bottom:8px;}
+        .auth-subtitle{font-size:14px;color:#6b7280;}
+        .auth-tabs{display:flex;gap:8px;margin-bottom:28px;background:#0f1117;border-radius:50px;padding:4px;}
+        .auth-tab{flex:1;padding:10px;border:none;background:transparent;color:#6b7280;font-weight:700;font-size:13px;border-radius:50px;cursor:pointer;transition:all 0.2s;}
+        .auth-tab.active{background:linear-gradient(135deg,#2ecc71,#1a9e55);color:#0f1117;}
+        .auth-tab.admin-tab{color:#fbbf24;}
+        .auth-tab.admin-tab.active{background:linear-gradient(135deg,#fbbf24,#f59e0b);}
+        .f-label{display:block;font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:7px;}
+        .f-input{width:100%;padding:14px 16px;background:#0f1117;border:1.5px solid rgba(255,255,255,0.08);border-radius:12px;color:#e2e8f0;font-size:15px;outline:none;transition:all 0.2s;}
+        .f-input:focus{border-color:#2ecc71;background:#111318;box-shadow:0 0 0 3px rgba(46,204,113,0.08);}
+        .f-input::placeholder{color:#1f2937;}
+        .f-group{margin-bottom:18px;}
+        .auth-btn{width:100%;background:linear-gradient(135deg,#2ecc71,#1a9e55);color:#0f1117;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:900;cursor:pointer;transition:all 0.2s;box-shadow:0 6px 24px rgba(46,204,113,0.3);margin-top:8px;}
+        .auth-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(46,204,113,0.4);}
+        .auth-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+        .auth-btn.admin-btn{background:linear-gradient(135deg,#fbbf24,#f59e0b);box-shadow:0 6px 24px rgba(251,191,36,0.3);}
+        .auth-btn.admin-btn:hover{box-shadow:0 8px 32px rgba(251,191,36,0.4);}
+        .auth-divider{text-align:center;color:#374151;font-size:13px;margin:24px 0;}
+        .auth-switch{text-align:center;color:#6b7280;font-size:14px;margin-top:20px;}
+        .auth-switch a{color:#2ecc71;font-weight:700;cursor:pointer;text-decoration:none;}
+        .auth-switch a:hover{text-decoration:underline;}
         .hero{background:linear-gradient(160deg,#0f1117 0%,#141820 40%,#0f1117 100%);padding:80px 28px 64px;text-align:center;position:relative;overflow:hidden;border-bottom:1px solid rgba(46,204,113,0.08);}
         .hero::before{content:"";position:absolute;top:-80px;left:50%;transform:translateX(-50%);width:700px;height:700px;background:radial-gradient(circle,rgba(46,204,113,0.1) 0%,transparent 65%);pointer-events:none;}
         .hero::after{content:"";position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(46,204,113,0.3),transparent);}
@@ -139,11 +239,6 @@ export default function App() {
         .back-btn:hover{background:rgba(46,204,113,0.14);transform:translateX(-2px);}
         .co-card{background:#1a1d27;border:1px solid rgba(255,255,255,0.06);border-radius:22px;padding:28px 32px;margin-bottom:20px;}
         .co-card h3{font-size:16px;font-weight:800;color:#fff;margin-bottom:22px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:8px;}
-        .f-label{display:block;font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:7px;}
-        .f-input{width:100%;padding:13px 16px;background:#0f1117;border:1.5px solid rgba(255,255,255,0.06);border-radius:12px;color:#e2e8f0;font-size:15px;outline:none;transition:all 0.2s;}
-        .f-input:focus{border-color:#2ecc71;background:#111318;box-shadow:0 0 0 3px rgba(46,204,113,0.08);}
-        .f-input::placeholder{color:#1f2937;}
-        .f-group{margin-bottom:16px;}
         .f-row{display:flex;gap:14px;}
         .summary-item{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:14px;color:#6b7280;}
         .summary-item:last-child{border:none;}
@@ -186,11 +281,167 @@ export default function App() {
           .co-card{padding:22px 20px;}
           .order-box{padding:22px 20px;}
           .footer-inner{flex-direction:column;text-align:center;}
+          .nav-right{gap:8px;}
+          .user-badge{padding:6px 12px;font-size:11px;}
         }
       `}</style>
 
       {/* TOAST */}
       <div className={`toast ${toast ? "show" : ""} ${toast.startsWith("⚠️") ? "warn" : ""}`}>{toast}</div>
+
+      {/* NAV */}
+      <nav className="nav">
+        <div className="logo" onClick={() => setPage("shop")}>
+          <div className="logo-icon">🛒</div>
+          <div>
+            <div className="logo-text">Ghosia <span>Market</span></div>
+            <div className="logo-sub">Birmingham&apos;s Mini Market</div>
+          </div>
+        </div>
+        <div className="nav-right">
+          {user ? (
+            <>
+              <div className={`user-badge ${user.role==='admin'?'admin-badge':''}`}>
+                {user.role === 'admin' ? '👑' : '👤'} {user.name}
+              </div>
+              <button className="logout-btn" onClick={handleLogout}>Logout</button>
+            </>
+          ) : (
+            <button className="cart-pill" onClick={() => setPage("auth")}>🔐 Login</button>
+          )}
+          {user && (
+            <button className="cart-pill" onClick={() => setPage(page==="checkout" ? "shop" : "checkout")}>
+              🧺
+              {totalItems > 0 && <span className="badge">{totalItems}</span>}
+              <span>{totalItems > 0 ? `£${total}` : "Cart"}</span>
+            </button>
+          )}
+        </div>
+      </nav>
+
+      {/* AUTH PAGE */}
+      {page === "auth" && (
+        <div className="auth-wrap">
+          <div className="auth-box">
+            <div className="auth-header">
+              <div className="auth-icon">{authMode === 'admin' ? '👑' : '🛒'}</div>
+              <h2 className="auth-title">
+                {authMode === 'register' && 'Create Account'}
+                {authMode === 'login' && 'Welcome Back'}
+                {authMode === 'admin' && 'Admin Access'}
+              </h2>
+              <p className="auth-subtitle">
+                {authMode === 'register' && 'Sign up to start shopping'}
+                {authMode === 'login' && 'Login to your account'}
+                {authMode === 'admin' && 'Store management portal'}
+              </p>
+            </div>
+
+            {authMode !== 'admin' && (
+              <div className="auth-tabs">
+                <button 
+                  className={`auth-tab ${authMode==='login'?'active':''}`}
+                  onClick={() => setAuthMode('login')}
+                >Login</button>
+                <button 
+                  className={`auth-tab ${authMode==='register'?'active':''}`}
+                  onClick={() => setAuthMode('register')}
+                >Register</button>
+              </div>
+            )}
+
+            <form onSubmit={handleAuth}>
+              {authMode === 'register' && (
+                <div className="f-group">
+                  <label className="f-label">Full Name</label>
+                  <input 
+                    className="f-input" 
+                    placeholder="e.g. John Smith" 
+                    value={authForm.name}
+                    onChange={e => setAuthForm({...authForm, name: e.target.value})}
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="f-group">
+                <label className="f-label">Email</label>
+                <input 
+                  className="f-input" 
+                  type="email"
+                  placeholder="e.g. john@example.com" 
+                  value={authForm.email}
+                  onChange={e => setAuthForm({...authForm, email: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div className="f-group">
+                <label className="f-label">Password</label>
+                <input 
+                  className="f-input" 
+                  type="password"
+                  placeholder="••••••••" 
+                  value={authForm.password}
+                  onChange={e => setAuthForm({...authForm, password: e.target.value})}
+                  required
+                  minLength={6}
+                />
+              </div>
+
+              {authMode === 'register' && (
+                <>
+                  <div className="f-group">
+                    <label className="f-label">Phone Number</label>
+                    <input 
+                      className="f-input" 
+                      placeholder="e.g. 07700 900000" 
+                      value={authForm.phone}
+                      onChange={e => setAuthForm({...authForm, phone: e.target.value})}
+                    />
+                  </div>
+                  <div className="f-group">
+                    <label className="f-label">Address</label>
+                    <input 
+                      className="f-input" 
+                      placeholder="e.g. 123 High St, Birmingham" 
+                      value={authForm.address}
+                      onChange={e => setAuthForm({...authForm, address: e.target.value})}
+                    />
+                  </div>
+                </>
+              )}
+
+              <button 
+                type="submit"
+                className={`auth-btn ${authMode==='admin'?'admin-btn':''}`}
+                disabled={authLoading}
+              >
+                {authLoading ? '⏳ Please wait...' : (
+                  authMode === 'register' ? '🚀 Create Account' :
+                  authMode === 'admin' ? '👑 Admin Login' :
+                  '🔐 Login'
+                )}
+              </button>
+            </form>
+
+            {authMode !== 'admin' && (
+              <>
+                <div className="auth-divider">or</div>
+                <div className="auth-switch">
+                  <a onClick={() => setAuthMode('admin')}>👑 Admin Login</a>
+                </div>
+              </>
+            )}
+
+            {authMode === 'admin' && (
+              <div className="auth-switch">
+                <a onClick={() => setAuthMode('login')}>← Back to Customer Login</a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* SUCCESS */}
       {orderDone && (
@@ -204,190 +455,170 @@ export default function App() {
         </div>
       )}
 
-      {!orderDone && (
-        <>
-          {/* NAV */}
-          <nav className="nav">
-            <div className="logo" onClick={() => setPage("shop")}>
-              <div className="logo-icon">🛒</div>
-              <div>
-                <div className="logo-text">Ghosia <span>Market</span></div>
-                <div className="logo-sub">Birmingham&apos;s Mini Market</div>
-              </div>
+      {/* REST OF THE APP */}
+      {page === "checkout" && !orderDone && user && (
+        <div className="checkout-wrap">
+          <button className="back-btn" onClick={() => setPage("shop")}>← Back to Shop</button>
+          {cart.length === 0 ? (
+            <div className="empty">
+              <div className="empty-icon">🧺</div>
+              <h3>Your cart is empty</h3>
+              <p>Go back and add some products!</p>
             </div>
-            <button className="cart-pill" onClick={() => setPage(page==="checkout" ? "shop" : "checkout")}>
-              🧺
-              {totalItems > 0 && <span className="badge">{totalItems}</span>}
-              <span>{totalItems > 0 ? `£${total}` : "Cart"}</span>
-            </button>
-          </nav>
-
-          {/* CHECKOUT PAGE */}
-          {page === "checkout" && (
-            <div className="checkout-wrap">
-              <button className="back-btn" onClick={() => setPage("shop")}>← Back to Shop</button>
-              {cart.length === 0 ? (
-                <div className="empty">
-                  <div className="empty-icon">🧺</div>
-                  <h3>Your cart is empty</h3>
-                  <p>Go back and add some products!</p>
-                </div>
-              ) : (
-                <>
-                  <div className="co-card">
-                    <h3>🧾 Order Summary</h3>
-                    {cart.map(item => (
-                      <div className="summary-item" key={item.id}>
-                        <span style={{color:"#d1d5db"}}>{item.name} <span style={{color:"#374151"}}>×{item.qty}</span></span>
-                        <span style={{color:"#e2e8f0",fontWeight:700}}>£{(item.price*item.qty).toFixed(2)}</span>
-                      </div>
-                    ))}
-                    <div className="summary-item"><span>Delivery</span><span className="free">🎉 FREE</span></div>
-                    <div className="summary-total"><span>Total to Pay</span><span>£{total}</span></div>
-                  </div>
-
-                  <div className="co-card">
-                    <h3>🚚 Delivery Details</h3>
-                    <div className="f-group"><label className="f-label">Full Name</label><input className="f-input" placeholder="e.g. Sara Ahmed" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} /></div>
-                    <div className="f-group"><label className="f-label">Delivery Address</label><input className="f-input" placeholder="e.g. 12 High Street, Birmingham, B1 1AA" value={form.address} onChange={e=>setForm({...form,address:e.target.value})} /></div>
-                    <div className="f-group"><label className="f-label">Phone Number</label><input className="f-input" placeholder="e.g. 07700 900000" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} /></div>
-                  </div>
-
-                  <div className="co-card">
-                    <h3>💳 Payment Details</h3>
-                    <div className="f-group"><label className="f-label">Card Number</label><input className="f-input" placeholder="1234  5678  9012  3456" maxLength={19} value={form.card} onChange={e=>setForm({...form,card:e.target.value})} /></div>
-                    <div className="f-row">
-                      <div className="f-group" style={{flex:1}}><label className="f-label">Expiry Date</label><input className="f-input" placeholder="MM / YY" maxLength={7} value={form.expiry} onChange={e=>setForm({...form,expiry:e.target.value})} /></div>
-                      <div className="f-group" style={{flex:1}}><label className="f-label">CVV</label><input className="f-input" placeholder="•••" maxLength={3} type="password" value={form.cvv} onChange={e=>setForm({...form,cvv:e.target.value})} /></div>
-                    </div>
-                    <p style={{fontSize:12,color:"#1f2937",marginTop:4}}>🔒 Your payment is secure and encrypted</p>
-                  </div>
-
-                  <button className="place-btn" onClick={placeOrder}>🛒 Place Order — £{total}</button>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* SHOP PAGE */}
-          {page === "shop" && (
+          ) : (
             <>
-              <div className="hero">
-                <div className="hero-badge">🛒 Birmingham&apos;s Favourite Mini Market</div>
-                <h1>Fresh Groceries<br />Delivered Fast 🚚</h1>
-                <p className="hero-sub">Quality products straight from Ghosia Mini Market to your door. Same-day delivery available.</p>
-                <div className="search-wrap">
-                  <div className="search-box">
-                    <input placeholder="🔍  Search milk, rice, spices..." value={search} onChange={e=>setSearch(e.target.value)} />
-                    <select value={category} onChange={e=>setCategory(e.target.value)}>
-                      {categories.map(c=><option key={c}>{c}</option>)}
-                    </select>
+              <div className="co-card">
+                <h3>🧾 Order Summary</h3>
+                {cart.map(item => (
+                  <div className="summary-item" key={item.id}>
+                    <span style={{color:"#d1d5db"}}>{item.name} <span style={{color:"#374151"}}>×{item.qty}</span></span>
+                    <span style={{color:"#e2e8f0",fontWeight:700}}>£{(item.price*item.qty).toFixed(2)}</span>
                   </div>
-                </div>
-                <div className="stats-row">
-                  <div className="stat"><div className="stat-num">25+</div><div className="stat-label">Products</div></div>
-                  <div className="stat"><div className="stat-num">8</div><div className="stat-label">Categories</div></div>
-                  <div className="stat"><div className="stat-num">FREE</div><div className="stat-label">Delivery</div></div>
-                  <div className="stat"><div className="stat-num">30min</div><div className="stat-label">Est. Time</div></div>
-                </div>
+                ))}
+                <div className="summary-item"><span>Delivery</span><span className="free">🎉 FREE</span></div>
+                <div className="summary-total"><span>Total to Pay</span><span>£{total}</span></div>
               </div>
 
-              <div className="body">
-                <div className="cat-row">
-                  {categories.map(c => (
-                    <button key={c} className={`cat-btn ${category===c?"active":""}`} onClick={()=>setCategory(c)}>
-                      {EMOJI[c]||""} {c}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="section-header">
-                  <div className="section-title">{EMOJI[category]||""} {category==="All"?"All Products":category}</div>
-                  <div className="section-count">{filtered.length} items</div>
-                </div>
-
-                {loading ? (
-                  <div className="spinner"><div className="spin"></div><p style={{color:"#374151",fontSize:14}}>Loading products...</p></div>
-                ) : filtered.length === 0 ? (
-                  <div className="empty">
-                    <div className="empty-icon">😔</div>
-                    <h3>Nothing found</h3>
-                    <p>Try a different search or category</p>
-                  </div>
-                ) : (
-                  <div className="grid">
-                    {filtered.map(p => {
-                      const inCart = cartQtyForProduct(p.id);
-                      return (
-                        <div className="card" key={p.id}>
-                          {inCart > 0 && <div className="in-cart-badge">{inCart}</div>}
-                          <div className="card-thumb">{EMOJI[p.category]||""}</div>
-                          <div className="card-body">
-                            <div className="card-cat">{p.category}</div>
-                            <div className="card-name">{p.name}</div>
-                            <div className="card-foot">
-                              <div className="card-price">£{p.price.toFixed(2)}</div>
-                              <button className="add-btn" onClick={()=>addToCart(p)}>+</button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {cart.length > 0 && (
-                  <>
-                    <div className="divider"/>
-                    <div className="section-header">
-                      <div className="section-title">🧺 Your Cart</div>
-                      <div className="section-count">{totalItems} items</div>
-                    </div>
-                    {cart.map(item => (
-                      <div className="cart-card" key={item.id}>
-                        <div className="cart-thumb">{EMOJI[item.category]||""}</div>
-                        <div className="cart-info">
-                          <div className="cart-name">{item.name}</div>
-                          <div className="cart-cat">{item.category} • £{item.price.toFixed(2)} each</div>
-                        </div>
-                        <div className="qty-control">
-                          <button className="qty-btn" onClick={()=>changeQty(item.id,-1)}>−</button>
-                          <span className="qty-num">{item.qty}</span>
-                          <button className="qty-btn" onClick={()=>changeQty(item.id,+1)}>+</button>
-                        </div>
-                        <div className="cart-price">£{(item.price*item.qty).toFixed(2)}</div>
-                        <button className="del-btn" onClick={()=>removeFromCart(item.id)}>✕</button>
-                      </div>
-                    ))}
-                    <div className="order-box">
-                      <div className="order-row"><span>Subtotal ({totalItems} items)</span><span style={{color:"#d1d5db"}}>£{total}</span></div>
-                      <div className="order-row"><span>Delivery</span><span className="free">🎉 FREE</span></div>
-                      <div className="order-row"><span>Estimated time</span><span style={{color:"#d1d5db"}}>30–45 min</span></div>
-                      <div className="order-total"><span>Total</span><span>£{total}</span></div>
-                      <button className="go-checkout" onClick={()=>setPage("checkout")}>Proceed to Checkout →</button>
-                    </div>
-                  </>
-                )}
+              <div className="co-card">
+                <h3>🚚 Delivery Details</h3>
+                <div className="f-group"><label className="f-label">Full Name</label><input className="f-input" placeholder="e.g. Sara Ahmed" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} /></div>
+                <div className="f-group"><label className="f-label">Delivery Address</label><input className="f-input" placeholder="e.g. 12 High Street, Birmingham, B1 1AA" value={form.address} onChange={e=>setForm({...form,address:e.target.value})} /></div>
+                <div className="f-group"><label className="f-label">Phone Number</label><input className="f-input" placeholder="e.g. 07700 900000" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} /></div>
               </div>
 
-              {/* FOOTER */}
-              <footer className="footer">
-                <div className="footer-inner">
-                  <div>
-                    <div className="footer-brand">🛒 Ghosia <span>Mini Market</span></div>
-                    <p style={{color:"#1f2937",fontSize:13,marginTop:6}}>Fresh groceries delivered to your door in Birmingham</p>
-                  </div>
-                  <div className="footer-links">
-                    <span className="footer-link">About Us</span>
-                    <span className="footer-link">Contact</span>
-                    <span className="footer-link">Privacy</span>
-                    <span className="footer-link">Terms</span>
-                  </div>
-                  <div className="footer-copy">© 2026 Ghosia Mini Market, Birmingham. All rights reserved.</div>
+              <div className="co-card">
+                <h3>💳 Payment Details</h3>
+                <div className="f-group"><label className="f-label">Card Number</label><input className="f-input" placeholder="1234  5678  9012  3456" maxLength={19} value={form.card} onChange={e=>setForm({...form,card:e.target.value})} /></div>
+                <div className="f-row">
+                  <div className="f-group" style={{flex:1}}><label className="f-label">Expiry Date</label><input className="f-input" placeholder="MM / YY" maxLength={7} value={form.expiry} onChange={e=>setForm({...form,expiry:e.target.value})} /></div>
+                  <div className="f-group" style={{flex:1}}><label className="f-label">CVV</label><input className="f-input" placeholder="•••" maxLength={3} type="password" value={form.cvv} onChange={e=>setForm({...form,cvv:e.target.value})} /></div>
                 </div>
-              </footer>
+                <p style={{fontSize:12,color:"#1f2937",marginTop:4}}>🔒 Your payment is secure and encrypted</p>
+              </div>
+
+              <button className="place-btn" onClick={placeOrder}>🛒 Place Order — £{total}</button>
             </>
           )}
+        </div>
+      )}
+
+      {/* SHOP PAGE */}
+      {page === "shop" && !orderDone && (
+        <>
+          <div className="hero">
+            <div className="hero-badge">🛒 Birmingham&apos;s Favourite Mini Market</div>
+            <h1>Fresh Groceries<br />Delivered Fast 🚚</h1>
+            <p className="hero-sub">Quality products straight from Ghosia Mini Market to your door. Same-day delivery available.</p>
+            <div className="search-wrap">
+              <div className="search-box">
+                <input placeholder="🔍  Search milk, rice, spices..." value={search} onChange={e=>setSearch(e.target.value)} />
+                <select value={category} onChange={e=>setCategory(e.target.value)}>
+                  {categories.map(c=><option key={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="stats-row">
+              <div className="stat"><div className="stat-num">25+</div><div className="stat-label">Products</div></div>
+              <div className="stat"><div className="stat-num">8</div><div className="stat-label">Categories</div></div>
+              <div className="stat"><div className="stat-num">FREE</div><div className="stat-label">Delivery</div></div>
+              <div className="stat"><div className="stat-num">30min</div><div className="stat-label">Est. Time</div></div>
+            </div>
+          </div>
+
+          <div className="body">
+            <div className="cat-row">
+              {categories.map(c => (
+                <button key={c} className={`cat-btn ${category===c?"active":""}`} onClick={()=>setCategory(c)}>
+                  {EMOJI[c]||""} {c}
+                </button>
+              ))}
+            </div>
+
+            <div className="section-header">
+              <div className="section-title">{EMOJI[category]||""} {category==="All"?"All Products":category}</div>
+              <div className="section-count">{filtered.length} items</div>
+            </div>
+
+            {loading ? (
+              <div className="spinner"><div className="spin"></div><p style={{color:"#374151",fontSize:14}}>Loading products...</p></div>
+            ) : filtered.length === 0 ? (
+              <div className="empty">
+                <div className="empty-icon">😔</div>
+                <h3>Nothing found</h3>
+                <p>Try a different search or category</p>
+              </div>
+            ) : (
+              <div className="grid">
+                {filtered.map(p => {
+                  const inCart = cartQtyForProduct(p.id);
+                  return (
+                    <div className="card" key={p.id}>
+                      {inCart > 0 && <div className="in-cart-badge">{inCart}</div>}
+                      <div className="card-thumb">{EMOJI[p.category]||""}</div>
+                      <div className="card-body">
+                        <div className="card-cat">{p.category}</div>
+                        <div className="card-name">{p.name}</div>
+                        <div className="card-foot">
+                          <div className="card-price">£{p.price.toFixed(2)}</div>
+                          <button className="add-btn" onClick={()=>addToCart(p)}>+</button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {user && cart.length > 0 && (
+              <>
+                <div className="divider"/>
+                <div className="section-header">
+                  <div className="section-title">🧺 Your Cart</div>
+                  <div className="section-count">{totalItems} items</div>
+                </div>
+                {cart.map(item => (
+                  <div className="cart-card" key={item.id}>
+                    <div className="cart-thumb">{EMOJI[item.category]||""}</div>
+                    <div className="cart-info">
+                      <div className="cart-name">{item.name}</div>
+                      <div className="cart-cat">{item.category} • £{item.price.toFixed(2)} each</div>
+                    </div>
+                    <div className="qty-control">
+                      <button className="qty-btn" onClick={()=>changeQty(item.id,-1)}>−</button>
+                      <span className="qty-num">{item.qty}</span>
+                      <button className="qty-btn" onClick={()=>changeQty(item.id,+1)}>+</button>
+                    </div>
+                    <div className="cart-price">£{(item.price*item.qty).toFixed(2)}</div>
+                    <button className="del-btn" onClick={()=>removeFromCart(item.id)}>✕</button>
+                  </div>
+                ))}
+                <div className="order-box">
+                  <div className="order-row"><span>Subtotal ({totalItems} items)</span><span style={{color:"#d1d5db"}}>£{total}</span></div>
+                  <div className="order-row"><span>Delivery</span><span className="free">🎉 FREE</span></div>
+                  <div className="order-row"><span>Estimated time</span><span style={{color:"#d1d5db"}}>30–45 min</span></div>
+                  <div className="order-total"><span>Total</span><span>£{total}</span></div>
+                  <button className="go-checkout" onClick={()=>setPage("checkout")}>Proceed to Checkout →</button>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* FOOTER */}
+          <footer className="footer">
+            <div className="footer-inner">
+              <div>
+                <div className="footer-brand">🛒 Ghosia <span>Mini Market</span></div>
+                <p style={{color:"#1f2937",fontSize:13,marginTop:6}}>Fresh groceries delivered to your door in Birmingham</p>
+              </div>
+              <div className="footer-links">
+                <span className="footer-link">About Us</span>
+                <span className="footer-link">Contact</span>
+                <span className="footer-link">Privacy</span>
+                <span className="footer-link">Terms</span>
+              </div>
+              <div className="footer-copy">© 2026 Ghosia Mini Market, Birmingham. All rights reserved.</div>
+            </div>
+          </footer>
         </>
       )}
     </div>

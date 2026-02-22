@@ -82,6 +82,11 @@ export default function App() {
   const [authMode, setAuthMode] = useState("login");
   const [authLoading, setAuthLoading] = useState(false);
 
+  // Admin states
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [productForm, setProductForm] = useState({ name: "", price: "", category: "", stock: 100 });
+  const [showAddProduct, setShowAddProduct] = useState(false);
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -101,11 +106,15 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    loadProducts();
+  }, []);
+
+  function loadProducts() {
     fetch(`${API_URL}/products`)
       .then(r => r.json())
       .then(data => { setProducts(data); setLoading(false); })
       .catch(err => { console.error(err); setLoading(false); });
-  }, []);
+  }
 
   const categories = ["All", ...new Set(products.map(p => p.category))];
   const filtered = products.filter(p =>
@@ -125,18 +134,18 @@ export default function App() {
       return;
     }
     setCart(old => {
-      const ex = old.find(i => i.id === product.id);
-      if (ex) return old.map(i => i.id === product.id ? {...i, qty: i.qty+1} : i);
+      const ex = old.find(i => i._id === product._id);
+      if (ex) return old.map(i => i._id === product._id ? {...i, qty: i.qty+1} : i);
       return [...old, {...product, qty:1}];
     });
     showToast(`✔ ${product.name} added!`);
   }
 
   function changeQty(id, d) {
-    setCart(old => old.map(i => i.id===id ? {...i, qty:i.qty+d} : i).filter(i => i.qty > 0));
+    setCart(old => old.map(i => i._id===id ? {...i, qty:i.qty+d} : i).filter(i => i.qty > 0));
   }
 
-  function removeFromCart(id) { setCart(old => old.filter(i => i.id !== id)); }
+  function removeFromCart(id) { setCart(old => old.filter(i => i._id !== id)); }
 
   const totalItems = cart.reduce((s,i) => s+i.qty, 0);
   const total = cart.reduce((s,i) => s+i.price*i.qty, 0).toFixed(2);
@@ -165,7 +174,7 @@ export default function App() {
   }
 
   const cartQtyForProduct = (id) => {
-    const item = cart.find(i => i.id === id);
+    const item = cart.find(i => i._id === id);
     return item ? item.qty : 0;
   };
 
@@ -206,7 +215,78 @@ export default function App() {
     localStorage.removeItem('token');
     setUser(null);
     setCart([]);
+    setPage('shop');
     showToast("👋 Logged out successfully");
+  }
+
+  // Admin functions
+  async function handleAddProduct(e) {
+    e.preventDefault();
+    try {
+      const res = await fetch(`${API_URL}/admin/products`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(productForm)
+      });
+      const data = await res.json();
+      if (!data.error) {
+        showToast("✅ Product added successfully!");
+        setProductForm({ name: "", price: "", category: "", stock: 100 });
+        setShowAddProduct(false);
+        loadProducts();
+      } else {
+        showToast(`⚠️ ${data.error}`);
+      }
+    } catch (error) {
+      showToast("⚠️ Failed to add product");
+    }
+  }
+
+  async function handleUpdateProduct(product) {
+    try {
+      const res = await fetch(`${API_URL}/admin/products/${product._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(product)
+      });
+      const data = await res.json();
+      if (!data.error) {
+        showToast("✅ Product updated successfully!");
+        setEditingProduct(null);
+        loadProducts();
+      } else {
+        showToast(`⚠️ ${data.error}`);
+      }
+    } catch (error) {
+      showToast("⚠️ Failed to update product");
+    }
+  }
+
+  async function handleDeleteProduct(id) {
+    if (!confirm("Are you sure you want to delete this product?")) return;
+    try {
+      const res = await fetch(`${API_URL}/admin/products/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast("✅ Product deleted successfully!");
+        loadProducts();
+      } else {
+        showToast(`⚠️ ${data.error}`);
+      }
+    } catch (error) {
+      showToast("⚠️ Failed to delete product");
+    }
   }
 
   return (
@@ -233,9 +313,37 @@ export default function App() {
         .logout-btn:hover{background:rgba(239,68,68,0.25);transform:translateY(-2px);}
         .nav-btn{background:#fff;color:#0f0f0f;border:none;border-radius:50px;padding:14px 28px;font-weight:900;cursor:pointer;font-size:16px;display:flex;align-items:center;gap:10px;transition:all 0.3s;box-shadow:0 8px 32px rgba(255,255,255,0.3);}
         .nav-btn:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(255,255,255,0.4);}
+        .admin-btn{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;}
+        .admin-btn:hover{box-shadow:0 12px 40px rgba(239,68,68,0.4);}
         .checkout-btn{background:linear-gradient(135deg,#10b981,#059669);color:#fff;}
         .checkout-btn:hover{box-shadow:0 12px 40px rgba(16,185,129,0.4);}
         .badge{background:#0f0f0f;color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;border:2px solid #fff;}
+        
+        .admin-wrap{max-width:1400px;margin:0 auto;padding:60px 28px;}
+        .admin-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:40px;}
+        .admin-title{font-size:42px;font-weight:900;color:#fff;display:flex;align-items:center;gap:16px;}
+        .admin-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:40px;}
+        .stat-card{background:rgba(30,30,30,0.9);border:2px solid rgba(255,255,255,0.15);border-radius:20px;padding:24px;text-align:center;}
+        .stat-value{font-size:36px;font-weight:900;color:#fff;margin-bottom:8px;}
+        .stat-label{font-size:14px;color:#aaa;font-weight:700;text-transform:uppercase;letter-spacing:1px;}
+        .admin-table{background:rgba(30,30,30,0.9);border:2px solid rgba(255,255,255,0.15);border-radius:20px;overflow:hidden;}
+        .table{width:100%;border-collapse:collapse;}
+        .table th{background:rgba(255,255,255,0.05);padding:18px;text-align:left;font-weight:900;color:#fff;border-bottom:2px solid rgba(255,255,255,0.1);font-size:14px;text-transform:uppercase;letter-spacing:1px;}
+        .table td{padding:18px;border-bottom:1px solid rgba(255,255,255,0.1);color:#fff;font-weight:600;}
+        .table tr:hover{background:rgba(255,255,255,0.05);}
+        .edit-input{background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 12px;color:#fff;font-size:14px;font-weight:600;outline:none;width:100%;}
+        .edit-input:focus{border-color:#fff;}
+        .action-btn{padding:8px 16px;border:none;border-radius:8px;font-weight:800;font-size:13px;cursor:pointer;transition:all 0.3s;margin-right:8px;}
+        .btn-edit{background:rgba(59,130,246,0.15);border:2px solid #3b82f6;color:#3b82f6;}
+        .btn-edit:hover{background:rgba(59,130,246,0.25);}
+        .btn-save{background:rgba(16,185,129,0.15);border:2px solid #10b981;color:#10b981;}
+        .btn-save:hover{background:rgba(16,185,129,0.25);}
+        .btn-cancel{background:rgba(156,163,175,0.15);border:2px solid #9ca3af;color:#9ca3af;}
+        .btn-cancel:hover{background:rgba(156,163,175,0.25);}
+        .btn-delete{background:rgba(239,68,68,0.15);border:2px solid #ef4444;color:#ef4444;}
+        .btn-delete:hover{background:rgba(239,68,68,0.25);}
+        .add-product-form{background:rgba(30,30,30,0.9);border:2px solid rgba(255,255,255,0.15);border-radius:20px;padding:32px;margin-bottom:30px;}
+        .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:20px;}
         
         .auth-wrap{min-height:calc(100vh - 80px);display:flex;align-items:center;justify-content:center;padding:40px 20px;}
         .auth-box{background:rgba(30,30,30,0.95);border:2px solid rgba(255,255,255,0.2);border-radius:32px;padding:50px 44px;width:100%;max-width:520px;box-shadow:0 20px 80px rgba(0,0,0,0.8);}
@@ -375,6 +483,9 @@ export default function App() {
           .user-badge{padding:10px 16px;font-size:13px;}
           .logo-text{font-size:22px;}
           .product-emoji{font-size:32px;width:52px;height:52px;}
+          .admin-wrap{padding:40px 18px;}
+          .table{font-size:12px;}
+          .table th,.table td{padding:12px 8px;}
         }
       `}</style>
 
@@ -394,17 +505,140 @@ export default function App() {
               <div className={`user-badge ${user.role==='admin'?'admin-badge':''}`}>
                 {user.role === 'admin' ? '🛡️' : '👤'} {user.name}
               </div>
+              {user.role === 'admin' && (
+                <button className="nav-btn admin-btn" onClick={() => setPage("admin")}>
+                  🛡️ Admin Dashboard
+                </button>
+              )}
               <button className="logout-btn" onClick={handleLogout}>Logout</button>
-              <button className="nav-btn checkout-btn" onClick={goToCheckout}>
-                💳 Checkout
-                {totalItems > 0 && <span className="badge">{totalItems}</span>}
-              </button>
+              {user.role !== 'admin' && (
+                <button className="nav-btn checkout-btn" onClick={goToCheckout}>
+                  💳 Checkout
+                  {totalItems > 0 && <span className="badge">{totalItems}</span>}
+                </button>
+              )}
             </>
           ) : (
             <button className="nav-btn" onClick={() => setPage("auth")}>🔐 Login</button>
           )}
         </div>
       </nav>
+
+      {/* ADMIN DASHBOARD */}
+      {page === "admin" && user && user.role === 'admin' && (
+        <div className="admin-wrap">
+          <div className="admin-header">
+            <h1 className="admin-title">🛡️ Admin Dashboard</h1>
+            <button className="back-btn" onClick={() => setPage("shop")}>← Back to Shop</button>
+          </div>
+
+          <div className="admin-stats">
+            <div className="stat-card">
+              <div className="stat-value">{products.length}</div>
+              <div className="stat-label">Total Products</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value">{categories.length - 1}</div>
+              <div className="stat-label">Categories</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value">{products.reduce((sum, p) => sum + p.stock, 0)}</div>
+              <div className="stat-label">Total Stock</div>
+            </div>
+          </div>
+
+          {showAddProduct ? (
+            <form className="add-product-form" onSubmit={handleAddProduct}>
+              <h3 style={{fontSize:24,fontWeight:900,marginBottom:20,color:"#fff"}}>➕ Add New Product</h3>
+              <div className="form-grid">
+                <div className="f-group">
+                  <label className="f-label">Product Name</label>
+                  <input className="f-input" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} required />
+                </div>
+                <div className="f-group">
+                  <label className="f-label">Price (£)</label>
+                  <input className="f-input" type="number" step="0.01" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} required />
+                </div>
+                <div className="f-group">
+                  <label className="f-label">Category</label>
+                  <input className="f-input" value={productForm.category} onChange={e => setProductForm({...productForm, category: e.target.value})} required />
+                </div>
+                <div className="f-group">
+                  <label className="f-label">Stock</label>
+                  <input className="f-input" type="number" value={productForm.stock} onChange={e => setProductForm({...productForm, stock: e.target.value})} required />
+                </div>
+              </div>
+              <div style={{display:"flex",gap:10}}>
+                <button type="submit" className="action-btn btn-save">✅ Add Product</button>
+                <button type="button" className="action-btn btn-cancel" onClick={() => {setShowAddProduct(false); setProductForm({ name: "", price: "", category: "", stock: 100 });}}>Cancel</button>
+              </div>
+            </form>
+          ) : (
+            <button className="nav-btn" style={{marginBottom:30}} onClick={() => setShowAddProduct(true)}>➕ Add New Product</button>
+          )}
+
+          <div className="admin-table">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Product Name</th>
+                  <th>Price</th>
+                  <th>Category</th>
+                  <th>Stock</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {products.map(product => (
+                  <tr key={product._id}>
+                    <td>
+                      {editingProduct && editingProduct._id === product._id ? (
+                        <input className="edit-input" value={editingProduct.name} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} />
+                      ) : (
+                        product.name
+                      )}
+                    </td>
+                    <td>
+                      {editingProduct && editingProduct._id === product._id ? (
+                        <input className="edit-input" type="number" step="0.01" value={editingProduct.price} onChange={e => setEditingProduct({...editingProduct, price: e.target.value})} />
+                      ) : (
+                        `£${product.price.toFixed(2)}`
+                      )}
+                    </td>
+                    <td>
+                      {editingProduct && editingProduct._id === product._id ? (
+                        <input className="edit-input" value={editingProduct.category} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} />
+                      ) : (
+                        product.category
+                      )}
+                    </td>
+                    <td>
+                      {editingProduct && editingProduct._id === product._id ? (
+                        <input className="edit-input" type="number" value={editingProduct.stock} onChange={e => setEditingProduct({...editingProduct, stock: e.target.value})} />
+                      ) : (
+                        product.stock
+                      )}
+                    </td>
+                    <td>
+                      {editingProduct && editingProduct._id === product._id ? (
+                        <>
+                          <button className="action-btn btn-save" onClick={() => handleUpdateProduct(editingProduct)}>💾 Save</button>
+                          <button className="action-btn btn-cancel" onClick={() => setEditingProduct(null)}>Cancel</button>
+                        </>
+                      ) : (
+                        <>
+                          <button className="action-btn btn-edit" onClick={() => setEditingProduct(product)}>✏️ Edit</button>
+                          <button className="action-btn btn-delete" onClick={() => handleDeleteProduct(product._id)}>🗑️ Delete</button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {page === "auth" && (
         <div className="auth-wrap">
@@ -496,7 +730,7 @@ export default function App() {
               <div className="co-card">
                 <h3>🧾 Order Summary</h3>
                 {cart.map(item => (
-                  <div className="summary-item" key={item.id}>
+                  <div className="summary-item" key={item._id}>
                     <span>{PRODUCT_EMOJIS[item.name] || "📦"} {item.name} <span style={{color:"#666"}}>×{item.qty}</span></span>
                     <span style={{fontWeight:900,color:"#fff"}}>£{(item.price*item.qty).toFixed(2)}</span>
                   </div>
@@ -565,11 +799,11 @@ export default function App() {
             ) : (
               <div className="grid">
                 {filtered.map(p => {
-                  const inCart = cartQtyForProduct(p.id);
+                  const inCart = cartQtyForProduct(p._id);
                   const productImage = PRODUCT_IMAGES[p.name] || "https://images.unsplash.com/photo-1534723452862-4c874018d66d?w=400";
                   const productEmoji = PRODUCT_EMOJIS[p.name] || "📦";
                   return (
-                    <div className="card" key={p.id}>
+                    <div className="card" key={p._id}>
                       {inCart > 0 && <div className="in-cart-badge">{inCart}</div>}
                       <div className="card-thumb">
                         <div className="product-emoji">{productEmoji}</div>
@@ -599,7 +833,7 @@ export default function App() {
                 {cart.map(item => {
                   const productImage = PRODUCT_IMAGES[item.name] || "https://images.unsplash.com/photo-1534723452862-4c874018d66d?w=400";
                   return (
-                    <div className="cart-card" key={item.id}>
+                    <div className="cart-card" key={item._id}>
                       <div className="cart-thumb">
                         <img src={productImage} alt={item.name} loading="lazy" />
                       </div>
@@ -608,12 +842,12 @@ export default function App() {
                         <div className="cart-cat">{item.category} • £{item.price.toFixed(2)} each</div>
                       </div>
                       <div className="qty-control">
-                        <button className="qty-btn" onClick={()=>changeQty(item.id,-1)}>−</button>
+                        <button className="qty-btn" onClick={()=>changeQty(item._id,-1)}>−</button>
                         <span className="qty-num">{item.qty}</span>
-                        <button className="qty-btn" onClick={()=>changeQty(item.id,+1)}>+</button>
+                        <button className="qty-btn" onClick={()=>changeQty(item._id,+1)}>+</button>
                       </div>
                       <div className="cart-price">£{(item.price*item.qty).toFixed(2)}</div>
-                      <button className="del-btn" onClick={()=>removeFromCart(item.id)}>✕</button>
+                      <button className="del-btn" onClick={()=>removeFromCart(item._id)}>✕</button>
                     </div>
                   );
                 })}

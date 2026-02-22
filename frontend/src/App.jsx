@@ -32,6 +32,38 @@ const PRODUCT_IMAGES = {
   "Cumin": "https://images.unsplash.com/photo-1596040033229-a0b548b2f047?w=400"
 };
 
+const PRODUCT_EMOJIS = {
+  "Whole Milk": "🥛",
+  "Cheddar Cheese": "🧀",
+  "Greek Yogurt": "🥛",
+  "Butter": "🧈",
+  "White Bread": "🍞",
+  "Croissants": "🥐",
+  "Bagels": "🥯",
+  "Chicken Breast": "🍗",
+  "Ground Beef": "🥩",
+  "Pork Chops": "🥓",
+  "Basmati Rice": "🍚",
+  "Quinoa": "🌾",
+  "Oats": "🌾",
+  "Carrots": "🥕",
+  "Broccoli": "🥦",
+  "Tomatoes": "🍅",
+  "Bell Peppers": "🫑",
+  "Olive Oil": "🫒",
+  "Vegetable Oil": "🌻",
+  "Coconut Oil": "🥥",
+  "Baked Beans": "🫘",
+  "Tomato Soup": "🥫",
+  "Tuna": "🐟",
+  "Orange Juice": "🧃",
+  "Cola": "🥤",
+  "Sparkling Water": "💧",
+  "Black Pepper": "🌶️",
+  "Turmeric": "🌶️",
+  "Cumin": "🌶️"
+};
+
 const API_URL = "http://localhost:3000/api";
 
 export default function App() {
@@ -199,8 +231,10 @@ export default function App() {
         .admin-badge{background:rgba(239,68,68,0.15);border:2px solid #ef4444;color:#ef4444;}
         .logout-btn{background:rgba(239,68,68,0.15);border:2px solid #ef4444;color:#ef4444;padding:12px 22px;border-radius:50px;font-size:15px;font-weight:800;cursor:pointer;transition:all 0.3s;}
         .logout-btn:hover{background:rgba(239,68,68,0.25);transform:translateY(-2px);}
-        .cart-pill{background:#fff;color:#0f0f0f;border:none;border-radius:50px;padding:14px 28px;font-weight:900;cursor:pointer;font-size:16px;display:flex;align-items:center;gap:10px;transition:all 0.3s;box-shadow:0 8px 32px rgba(255,255,255,0.3);}
-        .cart-pill:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(255,255,255,0.4);}
+        .nav-btn{background:#fff;color:#0f0f0f;border:none;border-radius:50px;padding:14px 28px;font-weight:900;cursor:pointer;font-size:16px;display:flex;align-items:center;gap:10px;transition:all 0.3s;box-shadow:0 8px 32px rgba(255,255,255,0.3);}
+        .nav-btn:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(255,255,255,0.4);}
+        .checkout-btn{background:linear-gradient(135deg,#10b981,#059669);color:#fff;}
+        .checkout-btn:hover{box-shadow:0 12px 40px rgba(16,185,129,0.4);}
         .badge{background:#0f0f0f;color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;border:2px solid #fff;}
         
         .auth-wrap{min-height:calc(100vh - 80px);display:flex;align-items:center;justify-content:center;padding:40px 20px;}
@@ -252,6 +286,7 @@ export default function App() {
         .card-thumb{height:200px;background:#1a1a1a;overflow:hidden;position:relative;}
         .card-thumb img{width:100%;height:100%;object-fit:cover;transition:transform 0.4s;}
         .card:hover .card-thumb img{transform:scale(1.1);}
+        .product-emoji{position:absolute;top:14px;left:14px;font-size:42px;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);border-radius:14px;width:64px;height:64px;display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,0.2);z-index:1;}
         .card-body{padding:22px 24px 24px;}
         .card-cat{font-size:12px;font-weight:900;color:#aaa;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;}
         .card-name{font-size:18px;font-weight:800;color:#fff;margin-bottom:20px;line-height:1.4;min-height:50px;}
@@ -283,8 +318,8 @@ export default function App() {
         .order-total{display:flex;justify-content:space-between;font-size:32px;font-weight:900;padding-top:20px;margin-top:12px;border-top:3px solid rgba(255,255,255,0.2);}
         .order-total span{color:#fff;}
         .free{color:#10b981;font-weight:900;}
-        .go-checkout{width:100%;background:#fff;color:#0f0f0f;border:none;border-radius:20px;padding:22px;font-size:20px;font-weight:900;cursor:pointer;margin-top:28px;transition:all 0.3s;box-shadow:0 10px 40px rgba(255,255,255,0.3);letter-spacing:1px;}
-        .go-checkout:hover{transform:translateY(-3px);box-shadow:0 15px 50px rgba(255,255,255,0.4);}
+        .go-checkout{width:100%;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:20px;padding:22px;font-size:20px;font-weight:900;cursor:pointer;margin-top:28px;transition:all 0.3s;box-shadow:0 10px 40px rgba(16,185,129,0.3);letter-spacing:1px;}
+        .go-checkout:hover{transform:translateY(-3px);box-shadow:0 15px 50px rgba(16,185,129,0.4);}
         
         .checkout-wrap{max-width:800px;margin:0 auto;padding:60px 28px;}
         .back-btn{background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.3);color:#fff;border-radius:50px;padding:14px 32px;font-size:16px;font-weight:900;cursor:pointer;margin-bottom:50px;transition:all 0.3s;display:inline-flex;align-items:center;gap:10px;}
@@ -295,8 +330,8 @@ export default function App() {
         .summary-item{display:flex;justify-content:space-between;padding:14px 0;border-bottom:2px solid rgba(255,255,255,0.1);font-size:16px;color:#aaa;font-weight:700;}
         .summary-item:last-child{border:none;}
         .summary-total{display:flex;justify-content:space-between;font-size:26px;font-weight:900;padding-top:18px;margin-top:12px;border-top:3px solid rgba(255,255,255,0.2);color:#fff;}
-        .place-btn{width:100%;background:#fff;color:#0f0f0f;border:none;border-radius:20px;padding:22px;font-size:20px;font-weight:900;cursor:pointer;transition:all 0.3s;box-shadow:0 10px 40px rgba(255,255,255,0.3);letter-spacing:1px;}
-        .place-btn:hover{transform:translateY(-3px);box-shadow:0 15px 50px rgba(255,255,255,0.4);}
+        .place-btn{width:100%;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:20px;padding:22px;font-size:20px;font-weight:900;cursor:pointer;transition:all 0.3s;box-shadow:0 10px 40px rgba(16,185,129,0.3);letter-spacing:1px;}
+        .place-btn:hover{transform:translateY(-3px);box-shadow:0 15px 50px rgba(16,185,129,0.4);}
         
         .success-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;}
         .success-box{text-align:center;padding:90px 70px;background:rgba(30,30,30,0.95);border:2px solid rgba(255,255,255,0.3);border-radius:40px;max-width:600px;box-shadow:0 30px 100px rgba(0,0,0,0.8);}
@@ -339,6 +374,7 @@ export default function App() {
           .nav-right{gap:10px;flex-wrap:wrap;}
           .user-badge{padding:10px 16px;font-size:13px;}
           .logo-text{font-size:22px;}
+          .product-emoji{font-size:32px;width:52px;height:52px;}
         }
       `}</style>
 
@@ -359,16 +395,13 @@ export default function App() {
                 {user.role === 'admin' ? '🛡️' : '👤'} {user.name}
               </div>
               <button className="logout-btn" onClick={handleLogout}>Logout</button>
+              <button className="nav-btn checkout-btn" onClick={goToCheckout}>
+                💳 Checkout
+                {totalItems > 0 && <span className="badge">{totalItems}</span>}
+              </button>
             </>
           ) : (
-            <button className="cart-pill" onClick={() => setPage("auth")}>🔐 Login</button>
-          )}
-          {user && (
-            <button className="cart-pill" onClick={goToCheckout}>
-              🧺
-              {totalItems > 0 && <span className="badge">{totalItems}</span>}
-              <span>{totalItems > 0 ? `£${total}` : "Cart"}</span>
-            </button>
+            <button className="nav-btn" onClick={() => setPage("auth")}>🔐 Login</button>
           )}
         </div>
       </nav>
@@ -464,7 +497,7 @@ export default function App() {
                 <h3>🧾 Order Summary</h3>
                 {cart.map(item => (
                   <div className="summary-item" key={item.id}>
-                    <span>{item.name} <span style={{color:"#666"}}>×{item.qty}</span></span>
+                    <span>{PRODUCT_EMOJIS[item.name] || "📦"} {item.name} <span style={{color:"#666"}}>×{item.qty}</span></span>
                     <span style={{fontWeight:900,color:"#fff"}}>£{(item.price*item.qty).toFixed(2)}</span>
                   </div>
                 ))}
@@ -534,10 +567,12 @@ export default function App() {
                 {filtered.map(p => {
                   const inCart = cartQtyForProduct(p.id);
                   const productImage = PRODUCT_IMAGES[p.name] || "https://images.unsplash.com/photo-1534723452862-4c874018d66d?w=400";
+                  const productEmoji = PRODUCT_EMOJIS[p.name] || "📦";
                   return (
                     <div className="card" key={p.id}>
                       {inCart > 0 && <div className="in-cart-badge">{inCart}</div>}
                       <div className="card-thumb">
+                        <div className="product-emoji">{productEmoji}</div>
                         <img src={productImage} alt={p.name} loading="lazy" />
                       </div>
                       <div className="card-body">
@@ -569,7 +604,7 @@ export default function App() {
                         <img src={productImage} alt={item.name} loading="lazy" />
                       </div>
                       <div className="cart-info">
-                        <div className="cart-name">{item.name}</div>
+                        <div className="cart-name">{PRODUCT_EMOJIS[item.name] || "📦"} {item.name}</div>
                         <div className="cart-cat">{item.category} • £{item.price.toFixed(2)} each</div>
                       </div>
                       <div className="qty-control">
@@ -587,7 +622,7 @@ export default function App() {
                   <div className="order-row"><span>Delivery</span><span className="free">🎉 FREE</span></div>
                   <div className="order-row"><span>Estimated time</span><span>30–45 min</span></div>
                   <div className="order-total"><span>Total</span><span>£{total}</span></div>
-                  <button className="go-checkout" onClick={goToCheckout}>Proceed to Checkout →</button>
+                  <button className="go-checkout" onClick={goToCheckout}>💳 Proceed to Checkout →</button>
                 </div>
               </>
             )}

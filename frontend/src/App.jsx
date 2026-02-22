@@ -212,7 +212,7 @@ export default function App() {
               <div className="logo-icon">🛒</div>
               <div>
                 <div className="logo-text">Ghosia <span>Market</span></div>
-                <div className="logo-sub">Bristol&apos;s Mini Market</div>
+                <div className="logo-sub">Birmingham&apos;s Mini Market</div>
               </div>
             </div>
             <button className="cart-pill" onClick={() => setPage(page==="checkout" ? "shop" : "checkout")}>
@@ -249,7 +249,7 @@ export default function App() {
                   <div className="co-card">
                     <h3>🚚 Delivery Details</h3>
                     <div className="f-group"><label className="f-label">Full Name</label><input className="f-input" placeholder="e.g. Sara Ahmed" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} /></div>
-                    <div className="f-group"><label className="f-label">Delivery Address</label><input className="f-input" placeholder="e.g. 12 Green Lane, Bristol, BS1 1AA" value={form.address} onChange={e=>setForm({...form,address:e.target.value})} /></div>
+                    <div className="f-group"><label className="f-label">Delivery Address</label><input className="f-input" placeholder="e.g. 12 High Street, Birmingham, B1 1AA" value={form.address} onChange={e=>setForm({...form,address:e.target.value})} /></div>
                     <div className="f-group"><label className="f-label">Phone Number</label><input className="f-input" placeholder="e.g. 07700 900000" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} /></div>
                   </div>
 
@@ -273,7 +273,7 @@ export default function App() {
           {page === "shop" && (
             <>
               <div className="hero">
-                <div className="hero-badge">🛒 Bristol&apos;s Favourite Mini Market</div>
+                <div className="hero-badge">🛒 Birmingham&apos;s Favourite Mini Market</div>
                 <h1>Fresh Groceries<br />Delivered Fast 🚚</h1>
                 <p className="hero-sub">Quality products straight from Ghosia Mini Market to your door. Same-day delivery available.</p>
                 <div className="search-wrap">
@@ -375,7 +375,7 @@ export default function App() {
                 <div className="footer-inner">
                   <div>
                     <div className="footer-brand">🛒 Ghosia <span>Mini Market</span></div>
-                    <p style={{color:"#1f2937",fontSize:13,marginTop:6}}>Fresh groceries delivered to your door in Bristol</p>
+                    <p style={{color:"#1f2937",fontSize:13,marginTop:6}}>Fresh groceries delivered to your door in Birmingham</p>
                   </div>
                   <div className="footer-links">
                     <span className="footer-link">About Us</span>
@@ -383,7 +383,7 @@ export default function App() {
                     <span className="footer-link">Privacy</span>
                     <span className="footer-link">Terms</span>
                   </div>
-                  <div className="footer-copy">© 2026 Ghosia Mini Market, Bristol. All rights reserved.</div>
+                  <div className="footer-copy">© 2026 Ghosia Mini Market, Birmingham. All rights reserved.</div>
                 </div>
               </footer>
             </>

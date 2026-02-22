@@ -63,11 +63,15 @@ const authMiddleware = async (req, res, next) => {
 const adminMiddleware = async (req, res, next) => {
   try {
     const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
     if (user.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
     next();
   } catch (error) {
+    console.error('Admin middleware error:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -106,6 +110,7 @@ app.post('/api/auth/register', async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Register error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -137,6 +142,7 @@ app.post('/api/auth/login', async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Login error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -147,6 +153,7 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
     const user = await User.findById(req.userId).select('-password');
     res.json(user);
   } catch (error) {
+    console.error('Get user error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -157,6 +164,7 @@ app.get('/api/products', async (req, res) => {
     const products = await Product.find();
     res.json(products);
   } catch (error) {
+    console.error('Get products error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -165,9 +173,19 @@ app.get('/api/products', async (req, res) => {
 app.post('/api/admin/products', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const { name, price, category, stock } = req.body;
-    const product = await Product.create({ name, price, category, stock });
+    console.log('Creating product:', { name, price, category, stock });
+    
+    const product = await Product.create({ 
+      name, 
+      price: parseFloat(price), 
+      category, 
+      stock: parseInt(stock) 
+    });
+    
+    console.log('Product created:', product);
     res.json(product);
   } catch (error) {
+    console.error('Create product error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -176,13 +194,27 @@ app.post('/api/admin/products', authMiddleware, adminMiddleware, async (req, res
 app.put('/api/admin/products/:id', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const { name, price, category, stock } = req.body;
+    console.log('Updating product:', req.params.id, { name, price, category, stock });
+    
     const product = await Product.findByIdAndUpdate(
       req.params.id,
-      { name, price, category, stock },
-      { new: true }
+      { 
+        name, 
+        price: parseFloat(price), 
+        category, 
+        stock: parseInt(stock) 
+      },
+      { new: true, runValidators: true }
     );
+    
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    
+    console.log('Product updated:', product);
     res.json(product);
   } catch (error) {
+    console.error('Update product error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -190,50 +222,63 @@ app.put('/api/admin/products/:id', authMiddleware, adminMiddleware, async (req, 
 // ADMIN: Delete product
 app.delete('/api/admin/products/:id', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    await Product.findByIdAndDelete(req.params.id);
+    console.log('Deleting product:', req.params.id);
+    
+    const product = await Product.findByIdAndDelete(req.params.id);
+    
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    
+    console.log('Product deleted:', product);
     res.json({ success: true });
   } catch (error) {
+    console.error('Delete product error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // Seed initial products if none exist
 async function seedProducts() {
-  const count = await Product.countDocuments();
-  if (count === 0) {
-    const products = [
-      { name: 'Whole Milk', price: 1.20, category: 'Dairy' },
-      { name: 'Cheddar Cheese', price: 3.50, category: 'Dairy' },
-      { name: 'Greek Yogurt', price: 2.00, category: 'Dairy' },
-      { name: 'Butter', price: 2.50, category: 'Dairy' },
-      { name: 'White Bread', price: 1.00, category: 'Bakery' },
-      { name: 'Croissants', price: 2.50, category: 'Bakery' },
-      { name: 'Bagels', price: 2.00, category: 'Bakery' },
-      { name: 'Chicken Breast', price: 5.00, category: 'Meat' },
-      { name: 'Ground Beef', price: 4.50, category: 'Meat' },
-      { name: 'Pork Chops', price: 6.00, category: 'Meat' },
-      { name: 'Basmati Rice', price: 3.00, category: 'Grains' },
-      { name: 'Quinoa', price: 4.00, category: 'Grains' },
-      { name: 'Oats', price: 2.50, category: 'Grains' },
-      { name: 'Carrots', price: 1.50, category: 'Vegetables' },
-      { name: 'Broccoli', price: 2.00, category: 'Vegetables' },
-      { name: 'Tomatoes', price: 2.50, category: 'Vegetables' },
-      { name: 'Bell Peppers', price: 3.00, category: 'Vegetables' },
-      { name: 'Olive Oil', price: 7.00, category: 'Oils' },
-      { name: 'Vegetable Oil', price: 4.00, category: 'Oils' },
-      { name: 'Coconut Oil', price: 6.00, category: 'Oils' },
-      { name: 'Baked Beans', price: 1.50, category: 'Tinned' },
-      { name: 'Tomato Soup', price: 2.00, category: 'Tinned' },
-      { name: 'Tuna', price: 3.00, category: 'Tinned' },
-      { name: 'Orange Juice', price: 3.50, category: 'Drinks' },
-      { name: 'Cola', price: 2.00, category: 'Drinks' },
-      { name: 'Sparkling Water', price: 1.50, category: 'Drinks' },
-      { name: 'Black Pepper', price: 2.50, category: 'Spices' },
-      { name: 'Turmeric', price: 3.00, category: 'Spices' },
-      { name: 'Cumin', price: 2.50, category: 'Spices' }
-    ];
-    await Product.insertMany(products);
-    console.log('✅ Products seeded successfully');
+  try {
+    const count = await Product.countDocuments();
+    if (count === 0) {
+      const products = [
+        { name: 'Whole Milk', price: 1.20, category: 'Dairy' },
+        { name: 'Cheddar Cheese', price: 3.50, category: 'Dairy' },
+        { name: 'Greek Yogurt', price: 2.00, category: 'Dairy' },
+        { name: 'Butter', price: 2.50, category: 'Dairy' },
+        { name: 'White Bread', price: 1.00, category: 'Bakery' },
+        { name: 'Croissants', price: 2.50, category: 'Bakery' },
+        { name: 'Bagels', price: 2.00, category: 'Bakery' },
+        { name: 'Chicken Breast', price: 5.00, category: 'Meat' },
+        { name: 'Ground Beef', price: 4.50, category: 'Meat' },
+        { name: 'Pork Chops', price: 6.00, category: 'Meat' },
+        { name: 'Basmati Rice', price: 3.00, category: 'Grains' },
+        { name: 'Quinoa', price: 4.00, category: 'Grains' },
+        { name: 'Oats', price: 2.50, category: 'Grains' },
+        { name: 'Carrots', price: 1.50, category: 'Vegetables' },
+        { name: 'Broccoli', price: 2.00, category: 'Vegetables' },
+        { name: 'Tomatoes', price: 2.50, category: 'Vegetables' },
+        { name: 'Bell Peppers', price: 3.00, category: 'Vegetables' },
+        { name: 'Olive Oil', price: 7.00, category: 'Oils' },
+        { name: 'Vegetable Oil', price: 4.00, category: 'Oils' },
+        { name: 'Coconut Oil', price: 6.00, category: 'Oils' },
+        { name: 'Baked Beans', price: 1.50, category: 'Tinned' },
+        { name: 'Tomato Soup', price: 2.00, category: 'Tinned' },
+        { name: 'Tuna', price: 3.00, category: 'Tinned' },
+        { name: 'Orange Juice', price: 3.50, category: 'Drinks' },
+        { name: 'Cola', price: 2.00, category: 'Drinks' },
+        { name: 'Sparkling Water', price: 1.50, category: 'Drinks' },
+        { name: 'Black Pepper', price: 2.50, category: 'Spices' },
+        { name: 'Turmeric', price: 3.00, category: 'Spices' },
+        { name: 'Cumin', price: 2.50, category: 'Spices' }
+      ];
+      await Product.insertMany(products);
+      console.log('✅ Products seeded successfully');
+    }
+  } catch (error) {
+    console.error('Seed products error:', error);
   }
 }
 

@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const Product = require('./models/Product');
+const User = require('./models/User');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -17,15 +18,42 @@ const connectDB = async () => {
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ghosia-market');
     console.log('✅ MongoDB connected successfully');
     
-    // Seed initial products if database is empty
-    const count = await Product.countDocuments();
-    if (count === 0) {
+    // Seed initial data if database is empty
+    const productCount = await Product.countDocuments();
+    if (productCount === 0) {
       console.log('📦 Seeding initial products...');
       await seedProducts();
+    }
+
+    // Create default admin if no admin exists
+    const adminExists = await User.findOne({ role: 'admin' });
+    if (!adminExists) {
+      console.log('👤 Creating default admin account...');
+      await createDefaultAdmin();
     }
   } catch (error) {
     console.error('❌ MongoDB connection error:', error.message);
     console.log('⚠️  Running without database - using fallback data');
+  }
+};
+
+// Create default admin
+const createDefaultAdmin = async () => {
+  try {
+    const admin = new User({
+      name: 'Admin',
+      email: 'admin@ghosia.com',
+      password: 'admin123', // Will be hashed automatically
+      role: 'admin',
+      phone: '07700900000',
+      address: 'Ghosia Mini Market, Birmingham'
+    });
+    await admin.save();
+    console.log('✅ Default admin created');
+    console.log('📧 Email: admin@ghosia.com');
+    console.log('🔑 Password: admin123');
+  } catch (error) {
+    console.error('❌ Error creating admin:', error.message);
   }
 };
 
@@ -96,6 +124,9 @@ const fallbackProducts = [
   { id: 25, name: "Chilli Powder 100g", price: 0.89, category: "Spices" },
 ];
 
+// Import middleware
+const { verifyToken, isAdmin } = require('./middleware/auth');
+
 // Routes
 app.get('/api/health', (req, res) => {
   res.json({ 
@@ -105,12 +136,11 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Public product routes (no auth required)
 app.get('/api/products', async (req, res) => {
   try {
     if (mongoose.connection.readyState === 1) {
-      // Database is connected
       const products = await Product.find({ inStock: true });
-      // Convert MongoDB documents to match frontend format
       const formattedProducts = products.map(p => ({
         id: p._id.toString(),
         name: p.name,
@@ -119,7 +149,6 @@ app.get('/api/products', async (req, res) => {
       }));
       res.json(formattedProducts);
     } else {
-      // Fallback to static data
       res.json(fallbackProducts);
     }
   } catch (error) {
@@ -128,13 +157,17 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-// Routes for orders (when DB is connected)
-const orderRoutes = require('./routes/orders');
-app.use('/api/orders', orderRoutes);
+// Auth routes
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
 
-// Admin routes for products (when DB is connected)
+// Order routes (customer or admin)
+const orderRoutes = require('./routes/orders');
+app.use('/api/orders', verifyToken, orderRoutes);
+
+// Admin-only product management
 const productRoutes = require('./routes/products');
-app.use('/api/admin/products', productRoutes);
+app.use('/api/admin/products', verifyToken, isAdmin, productRoutes);
 
 // Start server
 connectDB().then(() => {
@@ -142,5 +175,7 @@ connectDB().then(() => {
     console.log(`🚀 Backend running on http://localhost:${PORT}`);
     console.log(`📍 Location: Birmingham, UK`);
     console.log(`🛒 Store: Ghosia Mini Market`);
+    console.log(`\n🔐 Authentication enabled`);
+    console.log(`👥 Roles: Customer, Admin`);
   });
 });

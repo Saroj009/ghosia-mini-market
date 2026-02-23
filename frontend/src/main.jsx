@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App-simple.jsx' // Using simplified version for testing
+import App from './App.jsx' // Back to full version
 
 console.log('🚀 Frontend loading...');
 console.log('✅ React version:', React.version);

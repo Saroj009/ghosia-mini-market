@@ -68,7 +68,7 @@ const upload = multer({
   }
 });
 
-// MongoDB Atlas Connection - Now using environment variable!
+// MongoDB Atlas Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://sjha5791_db_user:jsz2U1xopubxz8tY@cluster0.oaxjmmf.mongodb.net/grocery_db?retryWrites=true&w=majority';
 
 mongoose.connect(MONGODB_URI)
@@ -100,7 +100,7 @@ const productSchema = new mongoose.Schema({
 
 const Product = mongoose.model('Product', productSchema);
 
-// JWT Secret - Now using environment variable!
+// JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-change-in-production';
 
 if (!process.env.JWT_SECRET) {
@@ -168,7 +168,8 @@ app.post('/api/auth/register', async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        isAdmin: user.role === 'admin'
       }
     });
   } catch (error) {
@@ -200,7 +201,8 @@ app.post('/api/auth/login', async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        isAdmin: user.role === 'admin'
       }
     });
   } catch (error) {
@@ -213,7 +215,10 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/auth/me', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.userId).select('-password');
-    res.json(user);
+    res.json({
+      ...user.toObject(),
+      isAdmin: user.role === 'admin'
+    });
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ error: error.message });
@@ -231,7 +236,7 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-// IMAGE UPLOAD endpoint - Now using environment variable for backend URL!
+// IMAGE UPLOAD endpoint
 app.post('/api/admin/upload', authMiddleware, adminMiddleware, upload.single('image'), (req, res) => {
   try {
     if (!req.file) {
@@ -330,13 +335,36 @@ app.delete('/api/admin/products/:id', authMiddleware, adminMiddleware, async (re
   }
 });
 
+// Create default admin user if none exists
+async function createDefaultAdmin() {
+  try {
+    const adminExists = await User.findOne({ role: 'admin' });
+    if (!adminExists) {
+      const hashedPassword = await bcrypt.hash('admin123', 10);
+      await User.create({
+        name: 'Admin',
+        email: 'admin@ghosia.com',
+        password: hashedPassword,
+        role: 'admin',
+        phone: '0000000000',
+        address: 'Ghosia Mini Market, Birmingham'
+      });
+      console.log('✅ Default admin user created');
+      console.log('📧 Admin Email: admin@ghosia.com');
+      console.log('🔑 Admin Password: admin123');
+    }
+  } catch (error) {
+    console.error('Create admin error:', error);
+  }
+}
+
 // Seed initial products if none exist
 async function seedProducts() {
   try {
     const count = await Product.countDocuments();
     if (count === 0) {
       const products = [
-        { name: 'Whole Milk', price: 1.20, category: 'Dairy', image: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400' },
+        { name: 'Whole Milk', price: 1.90, category: 'Dairy', image: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400' },
         { name: 'Cheddar Cheese', price: 3.50, category: 'Dairy', image: 'https://images.unsplash.com/photo-1618164436241-4473940d1f5c?w=400' },
         { name: 'Greek Yogurt', price: 2.00, category: 'Dairy', image: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400' },
         { name: 'Butter', price: 2.50, category: 'Dairy', image: 'https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?w=400' },
@@ -374,11 +402,21 @@ async function seedProducts() {
   }
 }
 
-seedProducts();
+// Initialize data
+async function initializeData() {
+  await createDefaultAdmin();
+  await seedProducts();
+}
+
+initializeData();
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🌐 CORS: Allowing all origins in development mode`);
-  console.log(`📱 Access from network: http://192.168.1.169:${PORT}`);
+  console.log(``);
+  console.log(`📝 DEFAULT ADMIN CREDENTIALS:`);
+  console.log(`   Email: admin@ghosia.com`);
+  console.log(`   Password: admin123`);
+  console.log(``);
 });

@@ -3,10 +3,49 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ghosia Mini Market</title>
+    <title>Ghosia Mini Market - Nepali & Asian Grocery</title>
+    <style>
+      /* Ensure body has proper background and no margins */
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: #0f0f0f;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+      /* Loading animation while React loads */
+      #root {
+        min-height: 100vh;
+        background: #0f0f0f;
+      }
+      /* Optional: Loading spinner */
+      .loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #0f0f0f;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 18px;
+        font-weight: 600;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Optional: Show loading text while React loads -->
+      <div class="loading-screen">
+        <div>
+          <div style="font-size: 48px; text-align: center; margin-bottom: 20px;">🛒</div>
+          <div>Loading Ghosia Mini Market...</div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

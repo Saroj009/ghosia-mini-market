@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import AdminDashboard from './AdminDashboard';
 
 // Use environment variable for API URL (works in both dev and production)
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -76,31 +77,12 @@ export default function App() {
   const [appliedPromo, setAppliedPromo] = useState(null);
   const [promoError, setPromoError] = useState("");
 
-  // Admin states
-  const [editingProduct, setEditingProduct] = useState(null);
-  const [productForm, setProductForm] = useState({ name: "", price: "", category: "", stock: 100, image: "" });
-  const [showAddProduct, setShowAddProduct] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [adminTab, setAdminTab] = useState("products"); // products, reviews, dashboard
-
   // Admin login state
   const [adminLoginForm, setAdminLoginForm] = useState({ email: "", password: "" });
   const [adminLoginLoading, setAdminLoginLoading] = useState(false);
 
   // Reviews states
   const [reviews, setReviews] = useState([]);
-  const [editingReview, setEditingReview] = useState(null);
-  const [showAddReview, setShowAddReview] = useState(false);
-  const [reviewForm, setReviewForm] = useState({ name: "", rating: 5, review: "", date: "" });
-
-  // Orders/Sales states (mock data for demo - replace with real API)
-  const [orders, setOrders] = useState([
-    { id: "ORD001", customerName: "John Doe", total: 45.99, items: 5, status: "Completed", date: "2026-02-20" },
-    { id: "ORD002", customerName: "Jane Smith", total: 78.50, items: 8, status: "Completed", date: "2026-02-21" },
-    { id: "ORD003", customerName: "Bob Wilson", total: 32.25, items: 3, status: "Pending", date: "2026-02-22" },
-    { id: "ORD004", customerName: "Alice Brown", total: 156.80, items: 12, status: "Completed", date: "2026-02-22" },
-    { id: "ORD005", customerName: "Charlie Davis", total: 91.40, items: 7, status: "Completed", date: "2026-02-22" },
-  ]);
 
   const PROMO_CODES = {
     "WELCOME10": { discount: 10, type: "percentage", description: "10% off your order" },
@@ -117,7 +99,6 @@ export default function App() {
         setReviews(JSON.parse(savedReviews));
       } catch (e) {
         console.error('Failed to parse reviews:', e);
-        // Default reviews if parse fails
         setReviews([
           { id: 1, name: "Priya Sharma", rating: 5, date: "2 weeks ago", review: "Best Nepali grocery store in Birmingham! Fresh vegetables and authentic spices. The owner is very friendly and helpful. Highly recommend!" },
           { id: 2, name: "Raj Gurung", rating: 5, date: "1 month ago", review: "Finally found a place that sells authentic Nepali products! The basmati rice quality is excellent and prices are very reasonable. Will definitely come back." },
@@ -128,7 +109,6 @@ export default function App() {
         ]);
       }
     } else {
-      // Default reviews
       setReviews([
         { id: 1, name: "Priya Sharma", rating: 5, date: "2 weeks ago", review: "Best Nepali grocery store in Birmingham! Fresh vegetables and authentic spices. The owner is very friendly and helpful. Highly recommend!" },
         { id: 2, name: "Raj Gurung", rating: 5, date: "1 month ago", review: "Finally found a place that sells authentic Nepali products! The basmati rice quality is excellent and prices are very reasonable. Will definitely come back." },
@@ -294,17 +274,6 @@ export default function App() {
       }
     }
 
-    // Add order to mock orders list
-    const newOrder = {
-      id: `ORD${String(orders.length + 1).padStart(3, '0')}`,
-      customerName: form.name,
-      total: parseFloat(total),
-      items: totalItems,
-      status: "Pending",
-      date: new Date().toISOString().split('T')[0]
-    };
-    setOrders([...orders, newOrder]);
-
     setOrderDone(true); 
     setCart([]); 
     setForm({ name:"", email:"", address:"", phone:"", card:"", expiry:"", cvv:"" });
@@ -356,7 +325,6 @@ export default function App() {
         localStorage.setItem('token', data.token);
         setUser(data.user);
         setPage('admin-dashboard');
-        setAdminTab('dashboard');
         showToast(`✅ Welcome Admin ${data.user.name}!`);
         setAdminLoginForm({ email: "", password: "" });
       } else if (data.token && !data.user.isAdmin) {
@@ -377,83 +345,6 @@ export default function App() {
     showToast("👋 Logged out successfully"); 
   }
 
-  async function handleImageUpload(e, isEdit = false) {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) { showToast('⚠️ Please select an image file'); return; }
-    if (file.size > 5 * 1024 * 1024) { showToast('⚠️ Image must be less than 5MB'); return; }
-    setUploading(true);
-    const formData = new FormData();
-    formData.append('image', file);
-    try {
-      const res = await fetch(`${API_URL}/admin/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: formData });
-      const data = await res.json();
-      if (data.imageUrl) {
-        if (isEdit) { setEditingProduct({ ...editingProduct, image: data.imageUrl }); }
-        else { setProductForm({ ...productForm, image: data.imageUrl }); }
-        showToast('✅ Image uploaded successfully!');
-      } else { showToast('⚠️ ' + (data.error || 'Upload failed')); }
-    } catch (error) { console.error('Upload error:', error); showToast('⚠️ Failed to upload image'); }
-    setUploading(false);
-  }
-
-  async function handleAddProduct(e) {
-    e.preventDefault();
-    try {
-      const res = await fetch(`${API_URL}/admin/products`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: JSON.stringify(productForm) });
-      const data = await res.json();
-      if (!data.error) { showToast("✅ Product added successfully!"); setProductForm({ name: "", price: "", category: "", stock: 100, image: "" }); setShowAddProduct(false); loadProducts(); }
-      else { showToast(`⚠️ ${data.error}`); }
-    } catch (error) { showToast("⚠️ Failed to add product"); }
-  }
-
-  async function handleUpdateProduct(product) {
-    try {
-      const res = await fetch(`${API_URL}/admin/products/${product._id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: JSON.stringify(product) });
-      const data = await res.json();
-      if (!data.error) { showToast("✅ Product updated successfully!"); setEditingProduct(null); loadProducts(); }
-      else { showToast(`⚠️ ${data.error}`); }
-    } catch (error) { showToast("⚠️ Failed to update product"); }
-  }
-
-  async function handleDeleteProduct(id) {
-    if (!confirm("Are you sure you want to delete this product?")) return;
-    try {
-      const res = await fetch(`${API_URL}/admin/products/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
-      const data = await res.json();
-      if (data.success) { showToast("✅ Product deleted successfully!"); loadProducts(); }
-      else { showToast(`⚠️ ${data.error}`); }
-    } catch (error) { showToast("⚠️ Failed to delete product"); }
-  }
-
-  // Review management functions
-  function handleAddReview(e) {
-    e.preventDefault();
-    const newReview = {
-      id: reviews.length > 0 ? Math.max(...reviews.map(r => r.id)) + 1 : 1,
-      name: reviewForm.name,
-      rating: parseInt(reviewForm.rating),
-      date: reviewForm.date || "Just now",
-      review: reviewForm.review
-    };
-    setReviews([...reviews, newReview]);
-    setReviewForm({ name: "", rating: 5, review: "", date: "" });
-    setShowAddReview(false);
-    showToast("✅ Review added successfully!");
-  }
-
-  function handleUpdateReview(review) {
-    setReviews(reviews.map(r => r.id === review.id ? review : r));
-    setEditingReview(null);
-    showToast("✅ Review updated successfully!");
-  }
-
-  function handleDeleteReview(id) {
-    if (!confirm("Are you sure you want to delete this review?")) return;
-    setReviews(reviews.filter(r => r.id !== id));
-    showToast("✅ Review deleted successfully!");
-  }
-
   // Render star rating
   function renderStars(rating) {
     return (
@@ -467,16 +358,15 @@ export default function App() {
     );
   }
 
-  // Calculate dashboard stats
-  const totalSales = orders.reduce((sum, order) => sum + order.total, 0);
-  const totalOrders = orders.length;
-  const completedOrders = orders.filter(o => o.status === "Completed").length;
-  const pendingOrders = orders.filter(o => o.status === "Pending").length;
-  const averageOrderValue = totalOrders > 0 ? (totalSales / totalOrders).toFixed(2) : 0;
-  const averageRating = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) : 0;
+  // If admin is logged in and viewing admin dashboard, render AdminDashboard component
+  if (page === "admin-dashboard" && user && user.isAdmin) {
+    return <AdminDashboard user={user} onLogout={handleLogout} />;
+  }
 
+  // Rest of the customer-facing application continues below...
   return (
     <div style={{fontFamily:"'Inter','Segoe UI',sans-serif", background:"#0f0f0f", minHeight:"100vh", color:"#fff"}}>
+      {/* Styles remain the same - keeping all CSS */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
@@ -536,47 +426,6 @@ export default function App() {
         .star{font-size:20px;color:#333;}
         .star.filled{color:#fbbf24;}
         .review-text{font-size:16px;color:#ddd;line-height:1.8;font-weight:600;}
-        .admin-wrap{max-width:1400px;margin:0 auto;padding:60px 28px;}
-        .admin-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:40px;}
-        .admin-title{font-size:42px;font-weight:900;color:#fff;display:flex;align-items:center;gap:16px;}
-        .admin-tabs{display:flex;gap:12px;margin-bottom:40px;background:rgba(255,255,255,0.05);border-radius:50px;padding:8px;border:2px solid rgba(255,255,255,0.1);}
-        .admin-tab{flex:1;padding:16px 24px;border:none;background:transparent;color:#aaa;font-weight:800;font-size:15px;border-radius:50px;cursor:pointer;transition:all 0.3s;}
-        .admin-tab.active{background:#fff;color:#0f0f0f;box-shadow:0 4px 20px rgba(255,255,255,0.3);}
-        .admin-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:40px;}
-        .stat-card{background:rgba(30,30,30,0.9);border:2px solid rgba(255,255,255,0.15);border-radius:20px;padding:24px;text-align:center;}
-        .stat-value{font-size:36px;font-weight:900;color:#fff;margin-bottom:8px;}
-        .stat-label{font-size:14px;color:#aaa;font-weight:700;text-transform:uppercase;letter-spacing:1px;}
-        .admin-table{background:rgba(30,30,30,0.9);border:2px solid rgba(255,255,255,0.15);border-radius:20px;overflow-x:auto;}
-        .table{width:100%;border-collapse:collapse;}
-        .table th{background:rgba(255,255,255,0.05);padding:18px;text-align:left;font-weight:900;color:#fff;border-bottom:2px solid rgba(255,255,255,0.1);font-size:14px;text-transform:uppercase;letter-spacing:1px;white-space:nowrap;}
-        .table td{padding:18px;border-bottom:1px solid rgba(255,255,255,0.1);color:#fff;font-weight:600;}
-        .table tr:hover{background:rgba(255,255,255,0.05);}
-        .edit-input{background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 12px;color:#fff;font-size:14px;font-weight:600;outline:none;width:100%;min-width:150px;}
-        .edit-input:focus{border-color:#fff;}
-        .edit-textarea{background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 12px;color:#fff;font-size:14px;font-weight:600;outline:none;width:100%;min-width:200px;min-height:80px;resize:vertical;}
-        .edit-textarea:focus{border-color:#fff;}
-        .action-btn{padding:8px 16px;border:none;border-radius:8px;font-weight:800;font-size:13px;cursor:pointer;transition:all 0.3s;margin-right:8px;white-space:nowrap;}
-        .btn-edit{background:rgba(59,130,246,0.15);border:2px solid #3b82f6;color:#3b82f6;}
-        .btn-edit:hover{background:rgba(59,130,246,0.25);}
-        .btn-save{background:rgba(16,185,129,0.15);border:2px solid #10b981;color:#10b981;}
-        .btn-save:hover{background:rgba(16,185,129,0.25);}
-        .btn-cancel{background:rgba(156,163,175,0.15);border:2px solid #9ca3af;color:#9ca3af;}
-        .btn-cancel:hover{background:rgba(156,163,175,0.25);}
-        .btn-delete{background:rgba(239,68,68,0.15);border:2px solid #ef4444;color:#ef4444;}
-        .btn-delete:hover{background:rgba(239,68,68,0.25);}
-        .add-product-form{background:rgba(30,30,30,0.9);border:2px solid rgba(255,255,255,0.15);border-radius:20px;padding:32px;margin-bottom:30px;}
-        .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:20px;}
-        .img-preview{max-width:120px;max-height:120px;border-radius:12px;margin-top:12px;border:2px solid rgba(255,255,255,0.2);display:block;}
-        .upload-btn-wrapper{position:relative;overflow:hidden;display:inline-block;}
-        .upload-btn{background:rgba(59,130,246,0.15);border:2px solid #3b82f6;color:#3b82f6;padding:10px 20px;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all 0.3s;}
-        .upload-btn:hover{background:rgba(59,130,246,0.25);transform:translateY(-2px);}
-        .upload-btn-wrapper input[type=file]{font-size:100px;position:absolute;left:0;top:0;opacity:0;cursor:pointer;}
-        .upload-btn:disabled{opacity:0.5;cursor:not-allowed;}
-        .image-options{display:flex;flex-direction:column;gap:12px;}
-        .or-divider{text-align:center;color:#666;font-size:14px;font-weight:700;margin:12px 0;}
-        .status-badge{padding:6px 14px;border-radius:50px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;}
-        .status-completed{background:rgba(16,185,129,0.15);border:2px solid #10b981;color:#10b981;}
-        .status-pending{background:rgba(251,191,36,0.15);border:2px solid #fbbf24;color:#fbbf24;}
         .auth-wrap{min-height:calc(100vh - 80px);display:flex;align-items:center;justify-content:center;padding:40px 20px;}
         .auth-box{background:rgba(30,30,30,0.95);border:2px solid rgba(255,255,255,0.2);border-radius:32px;padding:50px 44px;width:100%;max-width:520px;box-shadow:0 20px 80px rgba(0,0,0,0.8);}
         .auth-box.admin-auth-box{border:2px solid #ef4444;}
@@ -724,16 +573,11 @@ export default function App() {
           .user-badge{padding:10px 16px;font-size:13px;}
           .logo-text{font-size:22px;}
           .product-emoji{font-size:32px;width:52px;height:52px;}
-          .admin-wrap{padding:40px 18px;}
-          .table{font-size:12px;}
-          .table th,.table td{padding:12px 8px;}
           .content-page{padding:60px 20px;}
           .page-title{font-size:36px;}
           .promo-input-group{flex-direction:column;}
           .reviews-grid{grid-template-columns:1fr;}
           .reviews-title{font-size:36px;}
-          .admin-tabs{flex-direction:column;}
-          .admin-stats{grid-template-columns:1fr;}
         }
       `}</style>
 
@@ -749,12 +593,9 @@ export default function App() {
 
         <div className="nav-center">
           <span className="nav-link" onClick={() => { setPage("shop"); setOrderDone(false); }}>Home</span>
-          <span className="nav-link" onClick={() => setPage("deals")}>Deals</span>
-          <span className="nav-link" onClick={() => setPage("orders")}>Orders</span>
-          <span className="nav-link" onClick={() => setPage("saved")}>Saved Items</span>
           <span className="nav-link" onClick={() => setPage("about")}>About Us</span>
-          <span className="nav-link" onClick={() => setPage("contact")}>Contact Us</span>
-          <span className="nav-link admin-link" onClick={() => setPage("admin-login")}>⚡ Admin Login</span>
+          <span className="nav-link" onClick={() => setPage("contact")}>Contact</span>
+          <span className="nav-link admin-link" onClick={() => setPage("admin-login")}>⚡ Admin</span>
         </div>
 
         <div className="nav-right">
@@ -764,7 +605,7 @@ export default function App() {
                 👤 {user.name} {user.isAdmin && "⚡"}
               </div>
               {user.isAdmin && (
-                <button className="nav-btn admin-btn" onClick={() => { setPage("admin-dashboard"); setAdminTab("dashboard"); }}>
+                <button className="nav-btn admin-btn" onClick={() => setPage("admin-dashboard")}>
                   ⚙️ Admin Panel
                 </button>
               )}
@@ -774,7 +615,7 @@ export default function App() {
             </>
           ) : (
             <button className="nav-btn" onClick={() => setPage("auth")}>
-                🔐 Customer Login
+                🔐 Login
             </button>
           )}
           <button className="nav-btn checkout-btn" onClick={goToCheckout}>
@@ -794,7 +635,7 @@ export default function App() {
               <div className="auth-icon">🛒</div>
               <h2 className="auth-title">Customer Login</h2>
               <p className="auth-subtitle">
-                {authMode === "login" ? "Login to your customer account" : "Create a new customer account"}
+                {authMode === "login" ? "Login to your account" : "Create a new account"}
               </p>
             </div>
 
@@ -819,7 +660,7 @@ export default function App() {
                   <label className="f-label">Full Name</label>
                   <input
                     className="f-input"
-                    placeholder="Enter your full name"
+                    placeholder="Your name"
                     value={authForm.name}
                     onChange={(e) => setAuthForm({ ...authForm, name: e.target.value })}
                     required={authMode === "register"}
@@ -828,7 +669,7 @@ export default function App() {
               )}
 
               <div className="f-group">
-                <label className="f-label">Email Address</label>
+                <label className="f-label">Email</label>
                 <input
                   className="f-input"
                   type="email"
@@ -854,10 +695,10 @@ export default function App() {
               {authMode === "register" && (
                 <>
                   <div className="f-group">
-                    <label className="f-label">Phone Number</label>
+                    <label className="f-label">Phone</label>
                     <input
                       className="f-input"
-                      placeholder="Your phone number"
+                      placeholder="Phone number"
                       value={authForm.phone}
                       onChange={(e) => setAuthForm({ ...authForm, phone: e.target.value })}
                       required={authMode === "register"}
@@ -868,7 +709,7 @@ export default function App() {
                     <label className="f-label">Address</label>
                     <input
                       className="f-input"
-                      placeholder="Your delivery address"
+                      placeholder="Delivery address"
                       value={authForm.address}
                       onChange={(e) => setAuthForm({ ...authForm, address: e.target.value })}
                       required={authMode === "register"}
@@ -878,20 +719,20 @@ export default function App() {
               )}
 
               <button type="submit" className="auth-btn" disabled={authLoading}>
-                {authLoading ? "⏳ Please wait..." : authMode === "login" ? "🚀 Login" : "✨ Create Account"}
+                {authLoading ? "⏳ Wait..." : authMode === "login" ? "🚀 Login" : "✨ Register"}
               </button>
             </form>
 
             <div className="auth-switch">
               {authMode === "login" ? (
                 <span>
-                  Don't have an account?{" "}
-                  <a onClick={() => setAuthMode("register")}>Sign up here</a>
+                  New here?{" "}
+                  <a onClick={() => setAuthMode("register")}>Create account</a>
                 </span>
               ) : (
                 <span>
-                  Already have an account?{" "}
-                  <a onClick={() => setAuthMode("login")}>Login here</a>
+                  Have account?{" "}
+                  <a onClick={() => setAuthMode("login")}>Login</a>
                 </span>
               )}
             </div>
@@ -900,15 +741,15 @@ export default function App() {
 
             <div className="auth-switch">
               <span>
-                Are you an admin?{" "}
-                <a onClick={() => setPage("admin-login")} style={{color: "#ef4444"}}>Admin Login →</a>
+                Admin?{" "}
+                <a onClick={() => setPage("admin-login")} style={{color: "#ef4444"}}>Login here →</a>
               </span>
             </div>
           </div>
         </div>
       )}
 
-      {/* ADMIN LOGIN PAGE - COMPLETELY SEPARATE */}
+      {/* ADMIN LOGIN PAGE */}
       {page === "admin-login" && !user && (
         <div className="auth-wrap">
           <div className="auth-box admin-auth-box">
@@ -916,13 +757,13 @@ export default function App() {
               <div className="auth-icon">⚡</div>
               <h2 className="auth-title admin-title">Admin Login</h2>
               <p className="auth-subtitle">
-                Restricted access for administrators only
+                Restricted access for administrators
               </p>
             </div>
 
             <form onSubmit={handleAdminLogin}>
               <div className="f-group">
-                <label className="f-label">Admin Email</label>
+                <label className="f-label">Email</label>
                 <input
                   className="f-input"
                   type="email"
@@ -934,7 +775,7 @@ export default function App() {
               </div>
 
               <div className="f-group">
-                <label className="f-label">Admin Password</label>
+                <label className="f-label">Password</label>
                 <input
                   className="f-input"
                   type="password"
@@ -954,15 +795,15 @@ export default function App() {
 
             <div className="auth-switch">
               <span>
-                Not an admin?{" "}
-                <a onClick={() => setPage("auth")}>Customer Login →</a>
+                Customer?{" "}
+                <a onClick={() => setPage("auth")}>Login here →</a>
               </span>
             </div>
 
             <div style={{marginTop: "30px", padding: "16px", background: "rgba(239,68,68,0.1)", borderRadius: "12px", border: "1px solid rgba(239,68,68,0.3)"}}>
-              <p style={{fontSize: "13px", color: "#aaa", textAlign: "center", marginBottom: "8px", fontWeight: "700"}}>🔒 DEFAULT CREDENTIALS</p>
+              <p style={{fontSize: "13px", color: "#aaa", textAlign: "center", marginBottom: "8px", fontWeight: "700"}}>🔒 TEST CREDENTIALS</p>
               <p style={{fontSize: "14px", color: "#fff", textAlign: "center", fontWeight: "600"}}>Email: <strong>admin@ghosia.com</strong></p>
-              <p style={{fontSize: "14px", color: "#fff", textAlign: "center", fontWeight: "600"}}>Password: <strong>admin123</strong></p>
+              <p style={{fontSize: "14px", color: "#fff", textAlign: "center", fontWeight: "600"}}>Pass: <strong>admin123</strong></p>
             </div>
           </div>
         </div>
@@ -971,20 +812,19 @@ export default function App() {
       {/* Main Shop Page */}
       {page === "shop" && !orderDone && (
         <>
-          {/* Hero, Products, Cart sections... (keeping same as before) */}
           <div className="hero">
             <div className="hero-badge">
               <span>🎉</span> FRESH & AUTHENTIC
             </div>
             <h1>Your Nepali & Asian Grocery Store</h1>
             <p className="hero-sub">
-              Discover authentic Nepali and Asian products, fresh vegetables, premium spices, and all your grocery essentials in Birmingham.
+              Authentic Nepali and Asian products, fresh vegetables, premium spices in Birmingham.
             </p>
             <div className="search-wrap">
               <div className="search-box">
                 <input
                   type="text"
-                  placeholder="Search for products..."
+                  placeholder="Search products..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -1013,13 +853,13 @@ export default function App() {
             {loading ? (
               <div className="spinner">
                 <div className="spin"></div>
-                <span style={{ color: "#aaa", fontWeight: 800 }}>Loading products...</span>
+                <span style={{ color: "#aaa", fontWeight: 800 }}>Loading...</span>
               </div>
             ) : filtered.length === 0 ? (
               <div className="empty">
                 <div className="empty-icon">📦</div>
                 <h3>No Products Found</h3>
-                <p>Try adjusting your search or category filter.</p>
+                <p>Try different search or category.</p>
               </div>
             ) : (
               <>
@@ -1056,18 +896,18 @@ export default function App() {
 
             <div className="divider"></div>
 
-            {/* Shopping Cart Section */}
+            {/* Shopping Cart */}
             <div>
               <div className="section-header">
-                <h2 className="section-title">Your Shopping Cart</h2>
+                <h2 className="section-title">Shopping Cart</h2>
                 <div className="section-count">{totalItems} items</div>
               </div>
 
               {cart.length === 0 ? (
                 <div className="empty">
                   <div className="empty-icon">🛒</div>
-                  <h3>Your cart is empty</h3>
-                  <p>Add some products to get started!</p>
+                  <h3>Cart is empty</h3>
+                  <p>Add products to get started!</p>
                 </div>
               ) : (
                 <>
@@ -1096,14 +936,14 @@ export default function App() {
                     </div>
                   ))}
 
-                  {/* Promo Code Section */}
+                  {/* Promo Code */}
                   <div className="promo-section">
                     {!appliedPromo ? (
                       <>
                         <div className="promo-input-group">
                           <input
                             className="promo-input"
-                            placeholder="Enter promo code (try WELCOME10)"
+                            placeholder="Promo code (try WELCOME10)"
                             value={promoCode}
                             onChange={(e) => {
                               setPromoCode(e.target.value);
@@ -1135,7 +975,7 @@ export default function App() {
                     </div>
                     {appliedPromo && discount > 0 && (
                       <div className="order-row">
-                        <span>Discount ({appliedPromo.description})</span>
+                        <span>Discount</span>
                         <span className="discount">−£{discount.toFixed(2)}</span>
                       </div>
                     )}
@@ -1148,7 +988,7 @@ export default function App() {
                       <span>£{total}</span>
                     </div>
                     <button className="go-checkout" onClick={goToCheckout}>
-                      Proceed to Checkout 🚀
+                      Checkout 🚀
                     </button>
                   </div>
                 </>
@@ -1156,7 +996,7 @@ export default function App() {
             </div>
           </div>
 
-          {/* Customer Reviews Section */}
+          {/* Reviews */}
           <div className="reviews-section">
             <div className="reviews-header">
               <h2 className="reviews-title">
@@ -1165,7 +1005,7 @@ export default function App() {
                 <span>⭐</span>
               </h2>
               <p className="reviews-subtitle">
-                See what our customers are saying about their shopping experience!
+                See what customers are saying!
               </p>
             </div>
 
@@ -1187,25 +1027,35 @@ export default function App() {
         </>
       )}
 
-      {/* Include all other pages and admin panel - skipping for brevity but same content */}
+      {/* Success Page would go here - keeping basic structure */}
+      {orderDone && (
+        <div className="success-wrap">
+          <div className="success-box">
+            <span className="s-icon">🎉</span>
+            <h2>Order Placed!</h2>
+            <p>
+              Thank you for your order! We'll process it soon.
+            </p>
+            <button className="continue-btn" onClick={() => { setOrderDone(false); setPage("shop"); }}>
+              Continue Shopping
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="footer">
         <div className="footer-inner">
           <div className="footer-brand">Ghosia Mini Market 🛒</div>
           <div className="footer-links">
-            <span className="footer-link" onClick={() => setPage("about")}>
-              About Us
-            </span>
-            <span className="footer-link" onClick={() => setPage("contact")}>
-              Contact Us
-            </span>
+            <span className="footer-link" onClick={() => setPage("about")}>About</span>
+            <span className="footer-link" onClick={() => setPage("contact")}>Contact</span>
             <span className="footer-link" onClick={() => setPage("admin-login")} style={{color: "#ef4444"}}>
               ⚡ Admin
             </span>
           </div>
           <div className="footer-copy">
-            © 2026 Ghosia Mini Market. Your trusted Nepali & Asian grocery store in Birmingham.
+            © 2026 Ghosia Mini Market. Nepali & Asian grocery in Birmingham.
           </div>
         </div>
       </footer>

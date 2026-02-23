@@ -368,6 +368,33 @@ app.delete('/api/admin/products/:id', authMiddleware, adminMiddleware, async (re
   }
 });
 
+// Create default admin account on startup
+async function createDefaultAdmin() {
+  try {
+    const adminEmail = 'ghosia@gmail.com';
+    const existingAdmin = await User.findOne({ email: adminEmail });
+    
+    if (!existingAdmin) {
+      const hashedPassword = await bcrypt.hash('ghosia123456', 10);
+      await User.create({
+        name: 'Ghosia Admin',
+        email: adminEmail,
+        password: hashedPassword,
+        role: 'admin',
+        phone: '079192728',
+        address: '349 High Street, Birmingham, B70 9QG'
+      });
+      console.log('✅ Default admin account created');
+      console.log('📧 Email: ghosia@gmail.com');
+      console.log('🔑 Password: ghosia123456');
+    } else {
+      console.log('ℹ️  Default admin account already exists');
+    }
+  } catch (error) {
+    console.error('Create admin error:', error);
+  }
+}
+
 // Seed initial products if none exist
 async function seedProducts() {
   try {
@@ -412,7 +439,13 @@ async function seedProducts() {
   }
 }
 
-seedProducts();
+// Initialize data on startup
+async function initializeData() {
+  await createDefaultAdmin();
+  await seedProducts();
+}
+
+initializeData();
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server running on port ${PORT}`);

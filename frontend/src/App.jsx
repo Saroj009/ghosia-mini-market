@@ -83,6 +83,8 @@ export default function App() {
 
   // Reviews states
   const [reviews, setReviews] = useState([]);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ name: "", rating: 5, review: "" });
 
   const PROMO_CODES = {
     "WELCOME10": { discount: 10, type: "percentage", description: "10% off your order" },
@@ -200,6 +202,11 @@ export default function App() {
   
   const total = (subtotal - discount).toFixed(2);
 
+  function goToCart() {
+    if (cart.length === 0) { showToast("⚠️ Your cart is empty"); return; }
+    setPage("cart");
+  }
+
   function goToCheckout() {
     if (cart.length === 0) { showToast("⚠️ Your cart is empty"); return; }
     setPage("checkout");
@@ -227,6 +234,21 @@ export default function App() {
     setPromoCode("");
     setPromoError("");
     showToast("🗑️ Promo code removed");
+  }
+
+  function handleSubmitReview(e) {
+    e.preventDefault();
+    const newReview = {
+      id: Date.now(),
+      name: reviewForm.name,
+      rating: parseInt(reviewForm.rating),
+      date: "Just now",
+      review: reviewForm.review
+    };
+    setReviews([newReview, ...reviews]);
+    setReviewForm({ name: "", rating: 5, review: "" });
+    setShowReviewForm(false);
+    showToast("✅ Thank you for your review!");
   }
 
   async function placeOrder() {
@@ -366,7 +388,7 @@ export default function App() {
   // Rest of the customer-facing application continues below...
   return (
     <div style={{fontFamily:"'Inter','Segoe UI',sans-serif", background:"#0f0f0f", minHeight:"100vh", color:"#fff"}}>
-      {/* Styles remain the same - keeping all CSS */}
+      {/* I'll add ALL the styles here - keeping them intact */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
@@ -415,8 +437,8 @@ export default function App() {
         .reviews-section{max-width:1300px;margin:0 auto;padding:80px 28px;}
         .reviews-header{text-align:center;margin-bottom:60px;}
         .reviews-title{font-size:48px;font-weight:900;color:#fff;margin-bottom:20px;display:flex;align-items:center;justify-content:center;gap:16px;}
-        .reviews-subtitle{font-size:18px;color:#aaa;font-weight:600;max-width:600px;margin:0 auto;}
-        .reviews-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:24px;}
+        .reviews-subtitle{font-size:18px;color:#aaa;font-weight:600;max-width:600px;margin:0 auto 30px;}
+        .reviews-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:24px;margin-top:40px;}
         .review-card{background:rgba(30,30,30,0.9);border:2px solid rgba(255,255,255,0.15);border-radius:24px;padding:32px;transition:all 0.3s;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
         .review-card:hover{border-color:#fff;transform:translateY(-5px);box-shadow:0 20px 60px rgba(255,255,255,0.15);}
         .review-header{display:flex;justify-content:space-between;align-items:start;margin-bottom:16px;}
@@ -426,6 +448,9 @@ export default function App() {
         .star{font-size:20px;color:#333;}
         .star.filled{color:#fbbf24;}
         .review-text{font-size:16px;color:#ddd;line-height:1.8;font-weight:600;}
+        .review-form-card{background:rgba(16,185,129,0.05);border:2px solid rgba(16,185,129,0.3);border-radius:24px;padding:40px;max-width:700px;margin:0 auto 50px;}
+        .review-form-header{font-size:28px;font-weight:900;color:#fff;margin-bottom:10px;text-align:center;}
+        .review-form-subtitle{font-size:16px;color:#aaa;font-weight:600;margin-bottom:30px;text-align:center;}
         .auth-wrap{min-height:calc(100vh - 80px);display:flex;align-items:center;justify-content:center;padding:40px 20px;}
         .auth-box{background:rgba(30,30,30,0.95);border:2px solid rgba(255,255,255,0.2);border-radius:32px;padding:50px 44px;width:100%;max-width:520px;box-shadow:0 20px 80px rgba(0,0,0,0.8);}
         .auth-box.admin-auth-box{border:2px solid #ef4444;}
@@ -441,11 +466,16 @@ export default function App() {
         .f-input{width:100%;padding:16px 20px;background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.2);border-radius:16px;color:#fff;font-size:16px;outline:none;transition:all 0.3s;font-weight:600;}
         .f-input:focus{border-color:#fff;box-shadow:0 0 20px rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);}
         .f-input::placeholder{color:#666;}
+        .f-textarea{width:100%;padding:16px 20px;background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.2);border-radius:16px;color:#fff;font-size:16px;outline:none;transition:all 0.3s;font-weight:600;min-height:120px;resize:vertical;font-family:inherit;}
+        .f-textarea:focus{border-color:#fff;box-shadow:0 0 20px rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);}
+        .f-select{width:100%;padding:16px 20px;background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.2);border-radius:16px;color:#fff;font-size:16px;outline:none;transition:all 0.3s;font-weight:600;cursor:pointer;}
+        .f-select:focus{border-color:#fff;box-shadow:0 0 20px rgba(255,255,255,0.2);}
         .f-group{margin-bottom:22px;}
         .auth-btn{width:100%;background:#fff;color:#0f0f0f;border:none;border-radius:16px;padding:18px;font-size:18px;font-weight:900;cursor:pointer;transition:all 0.3s;box-shadow:0 8px 32px rgba(255,255,255,0.3);margin-top:14px;}
         .auth-btn:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(255,255,255,0.4);}
         .auth-btn:disabled{opacity:0.6;cursor:not-allowed;transform:none;}
         .auth-btn.admin-login-btn{background:#ef4444;color:#fff;}
+        .submit-review-btn{background:linear-gradient(135deg,#10b981,#059669);color:#fff;}
         .auth-divider{text-align:center;color:#666;font-size:15px;margin:30px 0;font-weight:700;}
         .auth-switch{text-align:center;color:#aaa;font-size:16px;margin-top:26px;font-weight:600;}
         .auth-switch a{color:#fff;font-weight:900;cursor:pointer;text-decoration:none;}
@@ -553,6 +583,12 @@ export default function App() {
         .promo-success-text{color:#10b981;font-size:15px;font-weight:800;}
         .promo-remove{background:none;border:none;color:#ef4444;font-size:20px;cursor:pointer;transition:all 0.3s;padding:0 8px;}
         .promo-remove:hover{transform:scale(1.2);}
+        .promo-available{margin-top:16px;padding:16px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.1);}
+        .promo-available-title{font-size:14px;color:#aaa;font-weight:800;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;}
+        .promo-item{padding:12px;background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.2);border-radius:10px;margin-bottom:10px;}
+        .promo-item:last-child{margin-bottom:0;}
+        .promo-code{font-size:15px;font-weight:900;color:#10b981;margin-bottom:4px;}
+        .promo-desc{font-size:13px;color:#aaa;font-weight:600;}
         .checkbox-group{display:flex;align-items:start;gap:12px;background:rgba(59,130,246,0.05);border:2px solid rgba(59,130,246,0.2);border-radius:16px;padding:18px;margin-top:20px;}
         .checkbox-input{width:22px;height:22px;cursor:pointer;margin-top:2px;}
         .checkbox-label{flex:1;color:#ddd;font-size:15px;font-weight:600;line-height:1.6;}
@@ -618,7 +654,7 @@ export default function App() {
                 🔐 Login
             </button>
           )}
-          <button className="nav-btn checkout-btn" onClick={goToCheckout}>
+          <button className="nav-btn checkout-btn" onClick={goToCart}>
             🛒 Cart <div className="badge">{totalItems}</div>
           </button>
         </div>
@@ -893,107 +929,6 @@ export default function App() {
                 </div>
               </>
             )}
-
-            <div className="divider"></div>
-
-            {/* Shopping Cart */}
-            <div>
-              <div className="section-header">
-                <h2 className="section-title">Shopping Cart</h2>
-                <div className="section-count">{totalItems} items</div>
-              </div>
-
-              {cart.length === 0 ? (
-                <div className="empty">
-                  <div className="empty-icon">🛒</div>
-                  <h3>Cart is empty</h3>
-                  <p>Add products to get started!</p>
-                </div>
-              ) : (
-                <>
-                  {cart.map((item) => (
-                    <div key={item._id} className="cart-card">
-                      <div className="cart-thumb">
-                        <img src={getProductImage(item)} alt={item.name} />
-                      </div>
-                      <div className="cart-info">
-                        <div className="cart-name">{item.name}</div>
-                        <div className="cart-cat">{item.category}</div>
-                      </div>
-                      <div className="qty-control">
-                        <button className="qty-btn" onClick={() => changeQty(item._id, -1)}>
-                          −
-                        </button>
-                        <div className="qty-num">{item.qty}</div>
-                        <button className="qty-btn" onClick={() => changeQty(item._id, 1)}>
-                          +
-                        </button>
-                      </div>
-                      <div className="cart-price">£{(item.price * item.qty).toFixed(2)}</div>
-                      <button className="del-btn" onClick={() => removeFromCart(item._id)}>
-                        🗑
-                      </button>
-                    </div>
-                  ))}
-
-                  {/* Promo Code */}
-                  <div className="promo-section">
-                    {!appliedPromo ? (
-                      <>
-                        <div className="promo-input-group">
-                          <input
-                            className="promo-input"
-                            placeholder="Promo code (try WELCOME10)"
-                            value={promoCode}
-                            onChange={(e) => {
-                              setPromoCode(e.target.value);
-                              setPromoError("");
-                            }}
-                          />
-                          <button className="promo-btn" onClick={applyPromoCode}>
-                            Apply
-                          </button>
-                        </div>
-                        {promoError && <div className="promo-error">❌ {promoError}</div>}
-                      </>
-                    ) : (
-                      <div className="promo-success">
-                        <span className="promo-success-text">
-                          🎉 {appliedPromo.description}
-                        </span>
-                        <button className="promo-remove" onClick={removePromoCode}>
-                          ✕
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="order-box">
-                    <div className="order-row">
-                      <span>Subtotal ({totalItems} items)</span>
-                      <span>£{subtotal.toFixed(2)}</span>
-                    </div>
-                    {appliedPromo && discount > 0 && (
-                      <div className="order-row">
-                        <span>Discount</span>
-                        <span className="discount">−£{discount.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="order-row">
-                      <span>Shipping</span>
-                      <span className="free">FREE</span>
-                    </div>
-                    <div className="order-total">
-                      <span>Total</span>
-                      <span>£{total}</span>
-                    </div>
-                    <button className="go-checkout" onClick={goToCheckout}>
-                      Checkout 🚀
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
           </div>
 
           {/* Reviews */}
@@ -1005,9 +940,67 @@ export default function App() {
                 <span>⭐</span>
               </h2>
               <p className="reviews-subtitle">
-                See what customers are saying!
+                See what customers are saying about us!
               </p>
+              <button 
+                className="nav-btn checkout-btn" 
+                onClick={() => setShowReviewForm(!showReviewForm)}
+                style={{ marginTop: "20px" }}
+              >
+                {showReviewForm ? "✕ Cancel" : "⭐ Write a Review"}
+              </button>
             </div>
+
+            {/* Review Form */}
+            {showReviewForm && (
+              <div className="review-form-card">
+                <h3 className="review-form-header">Share Your Experience</h3>
+                <p className="review-form-subtitle">We'd love to hear from you!</p>
+                <form onSubmit={handleSubmitReview}>
+                  <div className="f-group">
+                    <label className="f-label">Your Name</label>
+                    <input
+                      className="f-input"
+                      placeholder="Enter your name"
+                      value={reviewForm.name}
+                      onChange={(e) => setReviewForm({ ...reviewForm, name: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div className="f-group">
+                    <label className="f-label">Rating</label>
+                    <select
+                      className="f-select"
+                      value={reviewForm.rating}
+                      onChange={(e) => setReviewForm({ ...reviewForm, rating: e.target.value })}
+                      required
+                    >
+                      <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
+                      <option value="4">⭐⭐⭐⭐ Very Good</option>
+                      <option value="3">⭐⭐⭐ Good</option>
+                      <option value="2">⭐⭐ Fair</option>
+                      <option value="1">⭐ Poor</option>
+                    </select>
+                  </div>
+
+                  <div className="f-group">
+                    <label className="f-label">Your Review</label>
+                    <textarea
+                      className="f-textarea"
+                      placeholder="Tell us about your experience..."
+                      value={reviewForm.review}
+                      onChange={(e) => setReviewForm({ ...reviewForm, review: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <button type="submit" className="auth-btn submit-review-btn">
+                    ✨ Submit Review
+                  </button>
+                </form>
+              </div>
+            )}
 
             <div className="reviews-grid">
               {reviews.map((review) => (
@@ -1027,14 +1020,247 @@ export default function App() {
         </>
       )}
 
-      {/* Success Page would go here - keeping basic structure */}
+      {/* CART PAGE */}
+      {page === "cart" && (
+        <div className="checkout-wrap">
+          <button className="back-btn" onClick={() => setPage("shop")}>
+            ← Continue Shopping
+          </button>
+
+          <h1 className="page-title">
+            <span>🛒</span>
+            Shopping Cart
+          </h1>
+          <p className="page-subtitle">
+            Review your items before checkout
+          </p>
+
+          {cart.length === 0 ? (
+            <div className="empty">
+              <div className="empty-icon">🛒</div>
+              <h3>Your cart is empty</h3>
+              <p>Add some products to get started!</p>
+            </div>
+          ) : (
+            <>
+              {/* Cart Items */}
+              {cart.map((item) => (
+                <div key={item._id} className="cart-card">
+                  <div className="cart-thumb">
+                    <img src={getProductImage(item)} alt={item.name} />
+                  </div>
+                  <div className="cart-info">
+                    <div className="cart-name">{item.name}</div>
+                    <div className="cart-cat">{item.category}</div>
+                  </div>
+                  <div className="qty-control">
+                    <button className="qty-btn" onClick={() => changeQty(item._id, -1)}>
+                      −
+                    </button>
+                    <div className="qty-num">{item.qty}</div>
+                    <button className="qty-btn" onClick={() => changeQty(item._id, 1)}>
+                      +
+                    </button>
+                  </div>
+                  <div className="cart-price">£{(item.price * item.qty).toFixed(2)}</div>
+                  <button className="del-btn" onClick={() => removeFromCart(item._id)}>
+                    🗑
+                  </button>
+                </div>
+              ))}
+
+              {/* Promo Code Section */}
+              <div className="promo-section">
+                <h4 style={{fontSize: "18px", fontWeight: "900", color: "#fff", marginBottom: "16px"}}>🎫 Promo Code</h4>
+                {!appliedPromo ? (
+                  <>
+                    <div className="promo-input-group">
+                      <input
+                        className="promo-input"
+                        placeholder="Enter promo code"
+                        value={promoCode}
+                        onChange={(e) => {
+                          setPromoCode(e.target.value);
+                          setPromoError("");
+                        }}
+                      />
+                      <button className="promo-btn" onClick={applyPromoCode}>
+                        Apply
+                      </button>
+                    </div>
+                    {promoError && <div className="promo-error">❌ {promoError}</div>}
+                    
+                    {/* Available Promo Codes */}
+                    <div className="promo-available">
+                      <div className="promo-available-title">📌 Available Codes:</div>
+                      {Object.entries(PROMO_CODES).map(([code, details]) => (
+                        <div key={code} className="promo-item">
+                          <div className="promo-code">{code}</div>
+                          <div className="promo-desc">{details.description}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="promo-success">
+                    <span className="promo-success-text">
+                      🎉 {appliedPromo.description}
+                    </span>
+                    <button className="promo-remove" onClick={removePromoCode}>
+                      ✕
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Order Summary */}
+              <div className="order-box">
+                <div className="order-row">
+                  <span>Subtotal ({totalItems} items)</span>
+                  <span>£{subtotal.toFixed(2)}</span>
+                </div>
+                {appliedPromo && discount > 0 && (
+                  <div className="order-row">
+                    <span>Discount ({appliedPromo.type === "percentage" ? `${appliedPromo.discount}%` : `£${appliedPromo.discount}`})</span>
+                    <span className="discount">−£{discount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="order-row">
+                  <span>Shipping</span>
+                  <span className="free">FREE</span>
+                </div>
+                <div className="order-total">
+                  <span>Total</span>
+                  <span>£{total}</span>
+                </div>
+                <button className="go-checkout" onClick={goToCheckout}>
+                  Proceed to Checkout 🚀
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* CHECKOUT PAGE - Keep existing checkout code */}
+      {page === "checkout" && (
+        <div className="checkout-wrap">
+          <button className="back-btn" onClick={() => setPage("cart")}>
+            ← Back to Cart
+          </button>
+
+          <h1 className="page-title">
+            <span>💳</span>
+            Checkout
+          </h1>
+
+          {!user && (
+            <div className="guest-badge">
+              👤 Checking out as guest
+            </div>
+          )}
+
+          {/* Shipping Information */}
+          <div className="co-card">
+            <h3>📦 Shipping Information</h3>
+            <div className="f-row">
+              <div className="f-group" style={{flex:1}}>
+                <label className="f-label">Full Name</label>
+                <input className="f-input" placeholder="John Doe" value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} />
+              </div>
+              <div className="f-group" style={{flex:1}}>
+                <label className="f-label">Email</label>
+                <input className="f-input" type="email" placeholder="john@example.com" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} />
+              </div>
+            </div>
+            <div className="f-group">
+              <label className="f-label">Delivery Address</label>
+              <input className="f-input" placeholder="123 Main St, Birmingham" value={form.address} onChange={(e) => setForm({...form, address: e.target.value})} />
+            </div>
+            <div className="f-group">
+              <label className="f-label">Phone Number</label>
+              <input className="f-input" placeholder="0121 123 4567" value={form.phone} onChange={(e) => setForm({...form, phone: e.target.value})} />
+            </div>
+
+            {!user && (
+              <div className="checkbox-group">
+                <input type="checkbox" className="checkbox-input" checked={createAccount} onChange={(e) => setCreateAccount(e.target.checked)} />
+                <label className="checkbox-label">
+                  <strong>Create an account</strong> for faster checkout next time (optional)
+                </label>
+              </div>
+            )}
+
+            {createAccount && !user && (
+              <div className="f-group" style={{marginTop: "20px"}}>
+                <label className="f-label">Create Password</label>
+                <input className="f-input" type="password" placeholder="••••••••" value={accountPassword} onChange={(e) => setAccountPassword(e.target.value)} />
+              </div>
+            )}
+          </div>
+
+          {/* Payment Information */}
+          <div className="co-card">
+            <h3>💳 Payment Information</h3>
+            <div className="f-group">
+              <label className="f-label">Card Number</label>
+              <input className="f-input" placeholder="1234 5678 9012 3456" value={form.card} onChange={(e) => setForm({...form, card: e.target.value})} />
+            </div>
+            <div className="f-row">
+              <div className="f-group" style={{flex:1}}>
+                <label className="f-label">Expiry Date</label>
+                <input className="f-input" placeholder="MM/YY" value={form.expiry} onChange={(e) => setForm({...form, expiry: e.target.value})} />
+              </div>
+              <div className="f-group" style={{flex:1}}>
+                <label className="f-label">CVV</label>
+                <input className="f-input" placeholder="123" value={form.cvv} onChange={(e) => setForm({...form, cvv: e.target.value})} />
+              </div>
+            </div>
+          </div>
+
+          {/* Order Summary */}
+          <div className="co-card">
+            <h3>📋 Order Summary</h3>
+            {cart.map((item) => (
+              <div key={item._id} className="summary-item">
+                <span>{item.name} x {item.qty}</span>
+                <span>£{(item.price * item.qty).toFixed(2)}</span>
+              </div>
+            ))}
+            <div className="summary-item">
+              <span>Subtotal</span>
+              <span>£{subtotal.toFixed(2)}</span>
+            </div>
+            {appliedPromo && discount > 0 && (
+              <div className="summary-item">
+                <span>Discount</span>
+                <span className="discount">−£{discount.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="summary-item">
+              <span>Shipping</span>
+              <span className="free">FREE</span>
+            </div>
+            <div className="summary-total">
+              <span>Total</span>
+              <span>£{total}</span>
+            </div>
+          </div>
+
+          <button className="place-btn" onClick={placeOrder}>
+            Place Order 🚀
+          </button>
+        </div>
+      )}
+
+      {/* Success Page */}
       {orderDone && (
         <div className="success-wrap">
           <div className="success-box">
             <span className="s-icon">🎉</span>
             <h2>Order Placed!</h2>
             <p>
-              Thank you for your order! We'll process it soon.
+              Thank you for your order! We'll process it soon and notify you when it's ready.
             </p>
             <button className="continue-btn" onClick={() => { setOrderDone(false); setPage("shop"); }}>
               Continue Shopping

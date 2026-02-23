@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Page</title>
+  <style>
+    body { 
+      background: #0f0f0f; 
+      color: white; 
+      font-family: Arial; 
+      padding: 40px;
+      text-align: center;
+    }
+    h1 { font-size: 48px; }
+    .box {
+      background: rgba(255,255,255,0.1);
+      border: 2px solid white;
+      border-radius: 20px;
+      padding: 40px;
+      margin: 20px auto;
+      max-width: 600px;
+    }
+    button {
+      background: white;
+      color: black;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 10px;
+    }
+    button:hover { opacity: 0.8; }
+    #result { margin-top: 20px; font-size: 14px; text-align: left; }
+  </style>
+</head>
+<body>
+  <h1>🛒 Ghosia Mini Market Test</h1>
+  
+  <div class="box">
+    <h2>✅ If you can see this, HTML/CSS is working!</h2>
+    <p>Now let's test the API connection...</p>
+    
+    <button onclick="testAPI()">🔍 Test Backend API</button>
+    <button onclick="window.location.href='/'">🏠 Go to Main Site</button>
+    
+    <div id="result"></div>
+  </div>
+
+  <script>
+    async function testAPI() {
+      const result = document.getElementById('result');
+      result.innerHTML = '⏳ Testing API...';
+      
+      try {
+        const response = await fetch('http://localhost:3000/api/products');
+        const data = await response.json();
+        
+        result.innerHTML = `
+          <h3>✅ API Working!</h3>
+          <p>Found ${data.length} products</p>
+          <p>First product: ${data[0].name} - £${data[0].price}</p>
+          <pre>${JSON.stringify(data[0], null, 2)}</pre>
+        `;
+      } catch (error) {
+        result.innerHTML = `
+          <h3>❌ API Error</h3>
+          <p>${error.message}</p>
+          <p>Make sure backend is running on port 3000</p>
+        `;
+      }
+    }
+    
+    console.log('✅ Test page loaded successfully');
+  </script>
+</body>
+</html>

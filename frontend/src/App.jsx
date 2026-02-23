@@ -697,7 +697,6 @@ export default function App() {
           <div className="logo-icon">🛒</div>
           <div>
             <div className="logo-text">Ghosia Mini Market</div>
-            <div className="logo-sub">NEPALI & ASIAN GROCERY</div>
           </div>
         </div>
 
@@ -726,9 +725,14 @@ export default function App() {
               </button>
             </>
           ) : (
-            <button className="nav-btn" onClick={() => setPage("auth")}>
-              🔐 Login / Sign Up
-            </button>
+            <>
+              <button className="nav-btn" onClick={() => setPage("auth")}>
+                🔐 Login / Sign Up
+              </button>
+              <button className="nav-btn admin-btn" onClick={() => { setPage("auth"); setAuthMode("login"); }}>
+                ⚡ Admin Login
+              </button>
+            </>
           )}
           <button className="nav-btn checkout-btn" onClick={goToCheckout}>
             🛒 Cart <div className="badge">{totalItems}</div>
@@ -859,9 +863,9 @@ export default function App() {
             <div className="hero-badge">
               <span>🎉</span> FRESH & AUTHENTIC
             </div>
-            <h1>Your Nepali & Asian Grocery Store</h1>
+            <h1>Your Local Grocery Store</h1>
             <p className="hero-sub">
-              Discover authentic Nepali and Asian products, fresh vegetables, premium spices, and all your grocery essentials in Birmingham.
+              Discover authentic products, fresh vegetables, premium spices, and all your grocery essentials in Birmingham.
             </p>
             <div className="search-wrap">
               <div className="search-box">
@@ -1475,7 +1479,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Admin Panel */}
+      {/* Admin Panel - Keep all existing admin code unchanged */}
       {page === "admin" && user?.isAdmin && (
         <div className="admin-wrap">
           <div className="admin-header">
@@ -1572,7 +1576,7 @@ export default function App() {
             </>
           )}
 
-          {/* Products Tab */}
+          {/* Products Tab - Keep existing code */}
           {adminTab === "products" && (
             <>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
@@ -1815,7 +1819,7 @@ export default function App() {
             </>
           )}
 
-          {/* Reviews Tab */}
+          {/* Reviews Tab - Keep existing code */}
           {adminTab === "reviews" && (
             <>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
@@ -2018,7 +2022,7 @@ export default function App() {
             </span>
           </div>
           <div className="footer-copy">
-            © 2026 Ghosia Mini Market. Your trusted Nepali & Asian grocery store in Birmingham.
+            © 2026 Ghosia Mini Market. Your trusted grocery store in Birmingham.
           </div>
         </div>
       </footer>

@@ -338,20 +338,28 @@ app.delete('/api/admin/products/:id', authMiddleware, adminMiddleware, async (re
 // Create default admin user if none exists
 async function createDefaultAdmin() {
   try {
-    const adminExists = await User.findOne({ role: 'admin' });
+    // Check if admin exists with new email
+    const adminExists = await User.findOne({ email: 'ghosia@gmail.com' });
     if (!adminExists) {
-      const hashedPassword = await bcrypt.hash('admin123', 10);
+      // Delete old admin if exists
+      await User.deleteOne({ email: 'admin@ghosia.com' });
+      
+      const hashedPassword = await bcrypt.hash('ghosia123456', 10);
       await User.create({
-        name: 'Admin',
-        email: 'admin@ghosia.com',
+        name: 'Ghosia Admin',
+        email: 'ghosia@gmail.com',
         password: hashedPassword,
         role: 'admin',
         phone: '0000000000',
         address: 'Ghosia Mini Market, Birmingham'
       });
-      console.log('✅ Default admin user created');
-      console.log('📧 Admin Email: admin@ghosia.com');
-      console.log('🔑 Admin Password: admin123');
+      console.log('✅ Admin user created/updated');
+      console.log('📧 Admin Email: ghosia@gmail.com');
+      console.log('🔑 Admin Password: ghosia123456');
+    } else {
+      console.log('✅ Admin user already exists');
+      console.log('📧 Admin Email: ghosia@gmail.com');
+      console.log('🔑 Admin Password: ghosia123456');
     }
   } catch (error) {
     console.error('Create admin error:', error);
@@ -415,8 +423,8 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🌐 CORS: Allowing all origins in development mode`);
   console.log(``);
-  console.log(`📝 DEFAULT ADMIN CREDENTIALS:`);
-  console.log(`   Email: admin@ghosia.com`);
-  console.log(`   Password: admin123`);
+  console.log(`📝 ADMIN LOGIN CREDENTIALS:`);
+  console.log(`   Email: ghosia@gmail.com`);
+  console.log(`   Password: ghosia123456`);
   console.log(``);
 });

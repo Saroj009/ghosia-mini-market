@@ -43,6 +43,7 @@ router.post('/register', async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        isAdmin: user.role === 'admin', // Add isAdmin for frontend
         phone: user.phone,
         address: user.address
       }
@@ -89,6 +90,7 @@ router.post('/login', async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        isAdmin: user.role === 'admin', // Add isAdmin for frontend
         phone: user.phone,
         address: user.address
       }
@@ -113,7 +115,11 @@ router.get('/me', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json(user);
+    // Add isAdmin property for frontend compatibility
+    const userResponse = user.toObject();
+    userResponse.isAdmin = user.role === 'admin';
+
+    res.json(userResponse);
   } catch (error) {
     res.status(401).json({ error: 'Invalid token' });
   }
@@ -136,7 +142,11 @@ router.put('/profile', async (req, res) => {
       { new: true }
     ).select('-password');
 
-    res.json(user);
+    // Add isAdmin property for frontend compatibility
+    const userResponse = user.toObject();
+    userResponse.isAdmin = user.role === 'admin';
+
+    res.json(userResponse);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

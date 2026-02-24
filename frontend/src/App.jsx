@@ -1274,9 +1274,8 @@ export default function App() {
         <div className="footer-inner">
           <div className="footer-brand">Ghosia Mini Market 🛒</div>
           <div className="footer-links">
-            <span className="footer-link" onClick={() => setPage("about")}>About</span>
-            <span className="footer-link" onClick={() => setPage("contact")}>Contact</span>
-            <span className="footer-link" onClick={() => setPage("admin-login")} style={{color: "#ef4444"}}>
+            <span className="footer-link" onClick={() => setPage("privacy")}>Privacy Policy</span>
+            <span className="footer-link" onClick={() => setPage("terms")}>Terms & Conditions</span>
               🔒 Admin
             </span>
           </div>

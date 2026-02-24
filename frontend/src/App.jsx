@@ -1276,7 +1276,6 @@ export default function App() {
           <div className="footer-links">
             <span className="footer-link" onClick={() => setPage("privacy")}>Privacy Policy</span>
             <span className="footer-link" onClick={() => setPage("terms")}>Terms & Conditions</span>
-              🔒 Admin
             </span>
           </div>
           <div className="footer-copy">

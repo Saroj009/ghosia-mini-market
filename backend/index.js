@@ -11,19 +11,14 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Middleware - CORS configuration - ALLOW ALL ORIGINS IN DEVELOPMENT
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, Postman, curl)
     if (!origin) return callback(null, true);
-    
-    // In production, check against FRONTEND_URL
     if (process.env.NODE_ENV === 'production' && process.env.FRONTEND_URL) {
       if (origin === process.env.FRONTEND_URL) {
         callback(null, true);
@@ -31,22 +26,19 @@ const corsOptions = {
         callback(new Error('Not allowed by CORS'));
       }
     } else {
-      // In development, allow all origins (localhost, 192.168.x.x, etc.)
       callback(null, true);
     }
   },
   credentials: true,
   optionsSuccessStatus: 200
 };
+
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use('/uploads', express.static(uploadsDir));
 
-// Multer configuration for image uploads
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
+  destination: (req, file, cb) => cb(null, uploadsDir),
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, 'product-' + uniqueSuffix + path.extname(file.originalname));
@@ -55,7 +47,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif|webp/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
@@ -68,14 +60,12 @@ const upload = multer({
   }
 });
 
-// MongoDB Atlas Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://sjha5791_db_user:jsz2U1xopubxz8tY@cluster0.oaxjmmf.mongodb.net/grocery_db?retryWrites=true&w=majority';
 
 mongoose.connect(MONGODB_URI)
-  .then(() => console.log('✅ MongoDB Atlas connected successfully'))
-  .catch(err => console.error('❌ MongoDB connection error:', err));
+  .then(() => console.log('✅ MongoDB connected'))
+  .catch(err => console.error('❌ MongoDB error:', err));
 
-// User Schema
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
@@ -88,7 +78,6 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', userSchema);
 
-// Product Schema
 const productSchema = new mongoose.Schema({
   name: { type: String, required: true },
   price: { type: Number, required: true },
@@ -100,19 +89,48 @@ const productSchema = new mongoose.Schema({
 
 const Product = mongoose.model('Product', productSchema);
 
-// JWT Secret
+const orderSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  customerName: { type: String, required: true },
+  customerEmail: { type: String, required: true },
+  customerPhone: { type: String, required: true },
+  deliveryAddress: { type: String, required: true },
+  items: [{
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+    name: String,
+    price: Number,
+    quantity: Number,
+    image: String
+  }],
+  subtotal: { type: Number, required: true },
+  discount: { type: Number, default: 0 },
+  total: { type: Number, required: true },
+  promoCode: String,
+  status: { type: String, default: 'pending', enum: ['pending', 'processing', 'completed', 'cancelled'] },
+  paymentMethod: { type: String, default: 'cash' },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Order = mongoose.model('Order', orderSchema);
+
+const reviewSchema = new mongoose.Schema({
+  productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  customerName: { type: String, required: true },
+  customerEmail: String,
+  rating: { type: Number, required: true, min: 1, max: 5 },
+  comment: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Review = mongoose.model('Review', reviewSchema);
+
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-change-in-production';
 
-if (!process.env.JWT_SECRET) {
-  console.warn('⚠️  WARNING: JWT_SECRET not set in environment variables! Using fallback.');
-}
-
-// Auth Middleware
 const authMiddleware = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ error: 'No token provided' });
-    
     const decoded = jwt.verify(token, JWT_SECRET);
     req.userId = decoded.userId;
     next();
@@ -121,228 +139,237 @@ const authMiddleware = async (req, res, next) => {
   }
 };
 
-// Admin Middleware
 const adminMiddleware = async (req, res, next) => {
   try {
     const user = await User.findById(req.userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    if (user.role !== 'admin') {
+    if (!user || user.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
     next();
   } catch (error) {
-    console.error('Admin middleware error:', error);
     res.status(500).json({ error: error.message });
   }
 };
 
-// Routes
-
-// Register
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { name, email, password, phone, address } = req.body;
-    
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ error: 'Email already exists' });
     }
-    
     const hashedPassword = await bcrypt.hash(password, 10);
-    
-    const user = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-      phone,
-      address
-    });
-    
+    const user = await User.create({ name, email, password: hashedPassword, phone, address });
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
-    
     res.json({
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        isAdmin: user.role === 'admin'
-      }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, isAdmin: user.role === 'admin' }
     });
   } catch (error) {
-    console.error('Register error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Login
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ error: 'Invalid credentials' });
-    }
-    
+    if (!user) return res.status(400).json({ error: 'Invalid credentials' });
     const isValidPassword = await bcrypt.compare(password, user.password);
-    if (!isValidPassword) {
-      return res.status(400).json({ error: 'Invalid credentials' });
-    }
-    
+    if (!isValidPassword) return res.status(400).json({ error: 'Invalid credentials' });
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
-    
     res.json({
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        isAdmin: user.role === 'admin'
-      }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, isAdmin: user.role === 'admin' }
     });
   } catch (error) {
-    console.error('Login error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get current user
 app.get('/api/auth/me', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.userId).select('-password');
-    res.json({
-      ...user.toObject(),
-      isAdmin: user.role === 'admin'
-    });
+    res.json({ ...user.toObject(), isAdmin: user.role === 'admin' });
   } catch (error) {
-    console.error('Get user error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get all products
 app.get('/api/products', async (req, res) => {
   try {
     const products = await Product.find();
     res.json(products);
   } catch (error) {
-    console.error('Get products error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// IMAGE UPLOAD endpoint
 app.post('/api/admin/upload', authMiddleware, adminMiddleware, upload.single('image'), (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-    
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const backendUrl = process.env.BACKEND_URL || `http://localhost:${PORT}`;
     const imageUrl = `${backendUrl}/uploads/${req.file.filename}`;
-    console.log('Image uploaded:', imageUrl);
-    
     res.json({ imageUrl });
   } catch (error) {
-    console.error('Upload error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// ADMIN: Create product
 app.post('/api/admin/products', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const { name, price, category, stock, image } = req.body;
-    console.log('Creating product:', { name, price, category, stock, image });
-    
     const product = await Product.create({ 
-      name, 
-      price: parseFloat(price), 
-      category, 
-      stock: parseInt(stock),
-      image: image || ''
+      name, price: parseFloat(price), category, stock: parseInt(stock), image: image || ''
     });
-    
-    console.log('Product created:', product);
     res.json(product);
   } catch (error) {
-    console.error('Create product error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// ADMIN: Update product
 app.put('/api/admin/products/:id', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const { name, price, category, stock, image } = req.body;
-    console.log('Updating product:', req.params.id, { name, price, category, stock, image });
-    
     const product = await Product.findByIdAndUpdate(
       req.params.id,
-      { 
-        name, 
-        price: parseFloat(price), 
-        category, 
-        stock: parseInt(stock),
-        image: image || ''
-      },
+      { name, price: parseFloat(price), category, stock: parseInt(stock), image: image || '' },
       { new: true, runValidators: true }
     );
-    
-    if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
-    }
-    
-    console.log('Product updated:', product);
+    if (!product) return res.status(404).json({ error: 'Product not found' });
     res.json(product);
   } catch (error) {
-    console.error('Update product error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// ADMIN: Delete product
 app.delete('/api/admin/products/:id', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    console.log('Deleting product:', req.params.id);
-    
     const product = await Product.findByIdAndDelete(req.params.id);
-    
-    if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
-    }
-    
-    // Delete associated image file if it exists and is a local file
+    if (!product) return res.status(404).json({ error: 'Product not found' });
     if (product.image && product.image.includes('/uploads/')) {
       const filename = product.image.split('/uploads/')[1];
       const filepath = path.join(uploadsDir, filename);
-      if (fs.existsSync(filepath)) {
-        fs.unlinkSync(filepath);
-        console.log('Deleted image file:', filename);
-      }
+      if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
     }
-    
-    console.log('Product deleted:', product);
     res.json({ success: true });
   } catch (error) {
-    console.error('Delete product error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Create/Update admin user with new credentials
+// CREATE ORDER ENDPOINT
+app.post('/api/orders', async (req, res) => {
+  try {
+    const { customerName, customerEmail, customerPhone, deliveryAddress, items, subtotal, discount, total, promoCode } = req.body;
+    let userId = null;
+    const token = req.headers.authorization?.split(' ')[1];
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        userId = decoded.userId;
+      } catch (err) {}
+    }
+    const order = await Order.create({
+      userId, customerName, customerEmail, customerPhone, deliveryAddress, items, subtotal, discount, total, promoCode
+    });
+    console.log('✅ Order created:', order._id);
+    res.json({ success: true, orderId: order._id, order });
+  } catch (error) {
+    console.error('Order creation error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET ALL ORDERS (ADMIN)
+app.get('/api/admin/orders', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const orders = await Order.find().sort({ createdAt: -1 }).populate('userId', 'name email');
+    res.json(orders);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET MY ORDERS (CUSTOMER)
+app.get('/api/orders/my-orders', authMiddleware, async (req, res) => {
+  try {
+    const orders = await Order.find({ userId: req.userId }).sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// UPDATE ORDER STATUS (ADMIN)
+app.put('/api/admin/orders/:id', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { status } = req.body;
+    const order = await Order.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// CREATE REVIEW ENDPOINT
+app.post('/api/reviews', async (req, res) => {
+  try {
+    const { productId, customerName, customerEmail, rating, comment } = req.body;
+    let userId = null;
+    const token = req.headers.authorization?.split(' ')[1];
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        userId = decoded.userId;
+      } catch (err) {}
+    }
+    const review = await Review.create({
+      productId, userId, customerName, customerEmail, rating: parseInt(rating), comment
+    });
+    console.log('✅ Review created:', review._id);
+    res.json({ success: true, review });
+  } catch (error) {
+    console.error('Review creation error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET ALL REVIEWS
+app.get('/api/reviews', async (req, res) => {
+  try {
+    const reviews = await Review.find().sort({ createdAt: -1 }).populate('productId', 'name image');
+    res.json(reviews);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET REVIEWS BY PRODUCT
+app.get('/api/reviews/:productId', async (req, res) => {
+  try {
+    const reviews = await Review.find({ productId: req.params.productId }).sort({ createdAt: -1 });
+    res.json(reviews);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE REVIEW (ADMIN)
+app.delete('/api/admin/reviews/:id', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const review = await Review.findByIdAndDelete(req.params.id);
+    if (!review) return res.status(404).json({ error: 'Review not found' });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 async function createDefaultAdmin() {
   try {
-    // Delete old admin accounts
     await User.deleteMany({ role: 'admin' });
-    console.log('🗑️  Removed old admin accounts');
-    
-    // Create new admin with YOUR credentials
     const hashedPassword = await bcrypt.hash('ghosia123456', 10);
     await User.create({
       name: 'Ghosia Admin',
@@ -352,17 +379,12 @@ async function createDefaultAdmin() {
       phone: '0000000000',
       address: 'Ghosia Mini Market, Birmingham'
     });
-    
-    console.log('✅ NEW ADMIN ACCOUNT CREATED!');
-    console.log('📧 Email: ghosia@gmail.com');
-    console.log('🔑 Password: ghosia123456');
-    console.log('');
+    console.log('✅ Admin: ghosia@gmail.com / ghosia123456');
   } catch (error) {
-    console.error('Create admin error:', error);
+    console.error('Admin error:', error);
   }
 }
 
-// Seed initial products if none exist
 async function seedProducts() {
   try {
     const count = await Product.countDocuments();
@@ -399,14 +421,13 @@ async function seedProducts() {
         { name: 'Cumin', price: 2.50, category: 'Spices', image: 'https://images.unsplash.com/photo-1596040033229-a0b548b2f047?w=400' }
       ];
       await Product.insertMany(products);
-      console.log('✅ Products seeded successfully');
+      console.log('✅ Products seeded');
     }
   } catch (error) {
-    console.error('Seed products error:', error);
+    console.error('Seed error:', error);
   }
 }
 
-// Initialize data
 async function initializeData() {
   await createDefaultAdmin();
   await seedProducts();
@@ -415,12 +436,6 @@ async function initializeData() {
 initializeData();
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Server running on port ${PORT}`);
-  console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🌐 CORS: Allowing all origins in development mode`);
-  console.log(``);
-  console.log(`🔒 ADMIN LOGIN CREDENTIALS:`);
-  console.log(`   Email: ghosia@gmail.com`);
-  console.log(`   Password: ghosia123456`);
-  console.log(``);
+  console.log(`\n✅ Server running on port ${PORT}`);
+  console.log(`📦 Orders & Reviews: ENABLED\n`);
 });

@@ -393,7 +393,7 @@ export default function App() {
   // Rest of the customer-facing application continues below...
   return (
     <div style={{fontFamily:"'Inter','Segoe UI',sans-serif", background:"#0f0f0f", minHeight:"100vh", color:"#fff"}}>
-      {/* I'll add ALL the styles here - keeping them intact */}
+      {/* ALL STYLES - keeping intact */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
@@ -430,7 +430,11 @@ export default function App() {
         .page-subtitle{font-size:18px;color:#aaa;margin-bottom:50px;line-height:1.8;font-weight:600;}
         .info-card{background:rgba(30,30,30,0.9);border:2px solid rgba(255,255,255,0.15);border-radius:24px;padding:40px;margin-bottom:30px;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
         .info-card h2{font-size:28px;font-weight:900;color:#fff;margin-bottom:20px;display:flex;align-items:center;gap:12px;}
+        .info-card h3{font-size:22px;font-weight:800;color:#fff;margin:30px 0 16px;padding-top:20px;border-top:2px solid rgba(255,255,255,0.1);}
+        .info-card h3:first-of-type{margin-top:0;padding-top:0;border:none;}
         .info-card p{font-size:17px;color:#ddd;line-height:1.8;margin-bottom:16px;font-weight:600;}
+        .info-card ul{margin:20px 0 20px 24px;}
+        .info-card li{font-size:17px;color:#ddd;line-height:1.8;margin-bottom:12px;font-weight:600;}
         .info-item{display:flex;align-items:start;gap:16px;padding:16px 0;border-bottom:2px solid rgba(255,255,255,0.1);}
         .info-item:last-child{border:none;}
         .info-icon{font-size:28px;flex-shrink:0;}
@@ -668,6 +672,210 @@ export default function App() {
       {/* Toast Notification */}
       {toast && <div className={`toast show ${toast.includes("⚠️") ? "warn" : ""}`}>{toast}</div>}
 
+      {/* PRIVACY POLICY PAGE */}
+      {page === "privacy" && (
+        <div className="content-page">
+          <h1 className="page-title">🔒 Privacy Policy</h1>
+          <p className="page-subtitle">
+            Last updated: February 24, 2026
+          </p>
+
+          <div className="info-card">
+            <h2>📋 Introduction</h2>
+            <p>
+              Ghosia Mini Market ("we", "us", or "our") operates the online grocery store. This page informs you of our policies regarding the collection, use, and disclosure of personal data when you use our service.
+            </p>
+            <p>
+              We use your data to provide and improve our service. By using our service, you agree to the collection and use of information in accordance with this policy.
+            </p>
+
+            <h3>🔍 Information We Collect</h3>
+            <p>
+              We collect several types of information for various purposes to provide and improve our service to you:
+            </p>
+            <ul>
+              <li><strong>Personal Data:</strong> Name, email address, phone number, delivery address</li>
+              <li><strong>Payment Information:</strong> Credit/debit card details (processed securely through our payment partners)</li>
+              <li><strong>Order Data:</strong> Purchase history, shopping cart contents, product preferences</li>
+              <li><strong>Technical Data:</strong> IP address, browser type, device information, cookies</li>
+            </ul>
+
+            <h3>🎯 How We Use Your Information</h3>
+            <p>
+              We use the collected data for various purposes:
+            </p>
+            <ul>
+              <li>To process and deliver your orders</li>
+              <li>To send order confirmations and delivery updates</li>
+              <li>To provide customer support and respond to your inquiries</li>
+              <li>To improve our website and services</li>
+              <li>To send promotional offers and newsletters (you can opt-out anytime)</li>
+              <li>To detect and prevent fraud or unauthorized activities</li>
+            </ul>
+
+            <h3>🔐 Data Security</h3>
+            <p>
+              The security of your data is important to us. We implement appropriate technical and organizational measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.
+            </p>
+            <p>
+              However, please note that no method of transmission over the internet is 100% secure. While we strive to use commercially acceptable means to protect your personal data, we cannot guarantee its absolute security.
+            </p>
+
+            <h3>🍪 Cookies</h3>
+            <p>
+              We use cookies and similar tracking technologies to track activity on our service and hold certain information. You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent.
+            </p>
+
+            <h3>🤝 Sharing Your Information</h3>
+            <p>
+              We may share your personal information with:
+            </p>
+            <ul>
+              <li><strong>Service Providers:</strong> Third-party companies that help us operate our business (payment processors, delivery services)</li>
+              <li><strong>Legal Requirements:</strong> When required by law or to protect our rights</li>
+              <li><strong>Business Transfers:</strong> In connection with a merger, acquisition, or sale of assets</li>
+            </ul>
+            <p>
+              We do not sell your personal information to third parties for marketing purposes.
+            </p>
+
+            <h3>✅ Your Rights</h3>
+            <p>
+              You have the right to:
+            </p>
+            <ul>
+              <li>Access your personal data we hold about you</li>
+              <li>Correct inaccurate or incomplete information</li>
+              <li>Request deletion of your personal data</li>
+              <li>Object to processing of your personal data</li>
+              <li>Withdraw consent at any time</li>
+            </ul>
+
+            <h3>📞 Contact Us</h3>
+            <p>
+              If you have any questions about this Privacy Policy, please contact us at:
+            </p>
+            <p>
+              <strong>Email:</strong> privacy@ghosia.com<br/>
+              <strong>Phone:</strong> +44 123 456 7890<br/>
+              <strong>Address:</strong> 349 High Street, West Bromwich, B70 9QG
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* TERMS & CONDITIONS PAGE */}
+      {page === "terms" && (
+        <div className="content-page">
+          <h1 className="page-title">📜 Terms & Conditions</h1>
+          <p className="page-subtitle">
+            Last updated: February 24, 2026
+          </p>
+
+          <div className="info-card">
+            <h2>📋 Agreement to Terms</h2>
+            <p>
+              By accessing and using Ghosia Mini Market's website and services, you agree to be bound by these Terms and Conditions. If you disagree with any part of these terms, please do not use our service.
+            </p>
+
+            <h3>🛒 Use of Our Service</h3>
+            <p>
+              To use our service, you must:
+            </p>
+            <ul>
+              <li>Be at least 18 years old or have parental consent</li>
+              <li>Provide accurate and complete information when creating an account</li>
+              <li>Maintain the security of your account credentials</li>
+              <li>Notify us immediately of any unauthorized use of your account</li>
+              <li>Use our service only for lawful purposes</li>
+            </ul>
+
+            <h3>💳 Orders and Payment</h3>
+            <p>
+              When you place an order with us:
+            </p>
+            <ul>
+              <li>All prices are displayed in British Pounds (£) and include VAT where applicable</li>
+              <li>We reserve the right to refuse or cancel any order at our discretion</li>
+              <li>Payment must be made in full at the time of ordering</li>
+              <li>We accept major credit/debit cards and other payment methods as displayed</li>
+              <li>Product availability and prices are subject to change without notice</li>
+            </ul>
+
+            <h3>🚚 Delivery</h3>
+            <p>
+              Our delivery terms:
+            </p>
+            <ul>
+              <li>We deliver to addresses within Birmingham and surrounding areas</li>
+              <li>Delivery times are estimates and not guaranteed</li>
+              <li>You must be present to receive delivery of age-restricted products</li>
+              <li>Risk of loss passes to you upon delivery</li>
+              <li>We are not responsible for delays caused by factors beyond our control</li>
+            </ul>
+
+            <h3>↩️ Returns and Refunds</h3>
+            <p>
+              Returns policy:
+            </p>
+            <ul>
+              <li>Fresh and perishable items cannot be returned unless faulty or damaged</li>
+              <li>Non-perishable items can be returned within 14 days in original condition</li>
+              <li>Contact us within 24 hours if you receive damaged or incorrect items</li>
+              <li>Refunds will be processed within 7-10 business days</li>
+              <li>Original delivery charges are non-refundable unless we made an error</li>
+            </ul>
+
+            <h3>🏷️ Product Information</h3>
+            <p>
+              We strive to provide accurate product information, but:
+            </p>
+            <ul>
+              <li>Product images are for illustration purposes and may differ from actual items</li>
+              <li>We do not warrant that product descriptions are error-free</li>
+              <li>Weights and measures are approximate</li>
+              <li>Check product labels for allergen and dietary information</li>
+            </ul>
+
+            <h3>🔒 Intellectual Property</h3>
+            <p>
+              All content on our website, including text, graphics, logos, and images, is the property of Ghosia Mini Market and protected by copyright laws. You may not reproduce, distribute, or create derivative works without our written permission.
+            </p>
+
+            <h3>⚠️ Limitation of Liability</h3>
+            <p>
+              To the fullest extent permitted by law:
+            </p>
+            <ul>
+              <li>We are not liable for any indirect, incidental, or consequential damages</li>
+              <li>Our total liability is limited to the value of your order</li>
+              <li>We do not guarantee uninterrupted or error-free service</li>
+              <li>You use our service at your own risk</li>
+            </ul>
+
+            <h3>📝 Changes to Terms</h3>
+            <p>
+              We reserve the right to modify these terms at any time. Changes will be effective immediately upon posting. Your continued use of our service after changes constitutes acceptance of the new terms.
+            </p>
+
+            <h3>⚖️ Governing Law</h3>
+            <p>
+              These terms are governed by the laws of England and Wales. Any disputes will be subject to the exclusive jurisdiction of the courts of England and Wales.
+            </p>
+
+            <h3>📞 Contact Information</h3>
+            <p>
+              For questions about these Terms and Conditions, contact us at:
+            </p>
+            <p>
+              <strong>Email:</strong> info@ghosia.com<br/>
+              <strong>Phone:</strong> +44 123 456 7890<br/>
+              <strong>Address:</strong> 349 High Street, West Bromwich, B70 9QG
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* CUSTOMER AUTH PAGE */}
       {page === "auth" && !user && (
         <div className="auth-wrap">
@@ -850,7 +1058,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Shop Page */}
+      {/* Main Shop Page - Keep all existing shop code */}
 
       {/* CONTACT PAGE */}
       {page === "contact" && (
@@ -928,6 +1136,7 @@ export default function App() {
           </div>
         </div>
       )}
+      
       {page === "shop" && !orderDone && (
         <>
           <div className="hero">
@@ -1013,7 +1222,7 @@ export default function App() {
             )}
           </div>
 
-          {/* Reviews */}
+          {/* Reviews - Keep existing review section */}
           <div className="reviews-section">
             <div className="reviews-header">
               <h2 className="reviews-title">
@@ -1033,7 +1242,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* Review Form */}
             {showReviewForm && (
               <div className="review-form-card">
                 <h3 className="review-form-header">Share Your Experience</h3>
@@ -1102,7 +1310,7 @@ export default function App() {
         </>
       )}
 
-      {/* CART PAGE */}
+      {/* CART PAGE - Keep existing cart code */}
       {page === "cart" && (
         <div className="checkout-wrap">
           <button className="back-btn" onClick={() => setPage("shop")}>
@@ -1125,7 +1333,6 @@ export default function App() {
             </div>
           ) : (
             <>
-              {/* Cart Items */}
               {cart.map((item) => (
                 <div key={item._id} className="cart-card">
                   <div className="cart-thumb">
@@ -1151,7 +1358,6 @@ export default function App() {
                 </div>
               ))}
 
-              {/* Promo Code Section */}
               <div className="promo-section">
                 <h4 style={{fontSize: "18px", fontWeight: "900", color: "#fff", marginBottom: "16px"}}>🎫 Promo Code</h4>
                 {!appliedPromo ? (
@@ -1172,7 +1378,6 @@ export default function App() {
                     </div>
                     {promoError && <div className="promo-error">❌ {promoError}</div>}
                     
-                    {/* Available Promo Codes */}
                     <div className="promo-available">
                       <div className="promo-available-title">📌 Available Codes:</div>
                       {Object.entries(PROMO_CODES).map(([code, details]) => (
@@ -1195,7 +1400,6 @@ export default function App() {
                 )}
               </div>
 
-              {/* Order Summary */}
               <div className="order-box">
                 <div className="order-row">
                   <span>Subtotal ({totalItems} items)</span>
@@ -1242,7 +1446,6 @@ export default function App() {
             </div>
           )}
 
-          {/* Shipping Information */}
           <div className="co-card">
             <h3>📦 Shipping Information</h3>
             <div className="f-row">
@@ -1281,7 +1484,6 @@ export default function App() {
             )}
           </div>
 
-          {/* Payment Information */}
           <div className="co-card">
             <h3>💳 Payment Information</h3>
             <div className="f-group">
@@ -1300,7 +1502,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Order Summary */}
           <div className="co-card">
             <h3>📋 Order Summary</h3>
             {cart.map((item) => (

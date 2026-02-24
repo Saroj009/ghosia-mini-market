@@ -1048,12 +1048,6 @@ export default function App() {
                 <a onClick={() => setPage("auth")}>Login here →</a>
               </span>
             </div>
-
-            <div style={{marginTop: "30px", padding: "16px", background: "rgba(239,68,68,0.1)", borderRadius: "12px", border: "1px solid rgba(239,68,68,0.3)"}}>
-              <p style={{fontSize: "13px", color: "#aaa", textAlign: "center", marginBottom: "8px", fontWeight: "700"}}>🔒 TEST CREDENTIALS</p>
-              <p style={{fontSize: "14px", color: "#fff", textAlign: "center", fontWeight: "600"}}>Email: <strong>admin@ghosia.com</strong></p>
-              <p style={{fontSize: "14px", color: "#fff", textAlign: "center", fontWeight: "600"}}>Pass: <strong>admin123</strong></p>
-            </div>
           </div>
         </div>
       )}

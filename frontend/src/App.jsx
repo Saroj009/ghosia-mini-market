@@ -846,6 +846,83 @@ export default function App() {
       )}
 
       {/* Main Shop Page */}
+
+      {/* CONTACT PAGE */}
+      {page === "contact" && (
+        <div className="content-page">
+          <h1 className="page-title">📍 Contact Us</h1>
+          <p className="page-subtitle">
+            Visit us or get in touch. We're here to help with all your grocery needs!
+          </p>
+
+          <div className="info-card">
+            <h2>🏪 Store Location</h2>
+            <div className="info-item">
+              <div className="info-icon">📍</div>
+              <div className="info-content">
+                <div className="info-label">Address</div>
+                <div className="info-value">349 High Street, West Bromwich, B70 9QG</div>
+              </div>
+            </div>
+            <div className="info-item">
+              <div className="info-icon">📞</div>
+              <div className="info-content">
+                <div className="info-label">Phone</div>
+                <div className="info-value"><a href="tel:+441234567890">+44 123 456 7890</a></div>
+              </div>
+            </div>
+            <div className="info-item">
+              <div className="info-icon">📧</div>
+              <div className="info-content">
+                <div className="info-label">Email</div>
+                <div className="info-value"><a href="mailto:info@ghosia.com">info@ghosia.com</a></div>
+              </div>
+            </div>
+            <div className="info-item">
+              <div className="info-icon">🕐</div>
+              <div className="info-content">
+                <div className="info-label">Opening Hours</div>
+                <div className="info-value">Mon-Sat: 8:00 AM - 9:00 PM<br/>Sunday: 9:00 AM - 6:00 PM</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ABOUT PAGE */}
+      {page === "about" && (
+        <div className="content-page">
+          <h1 className="page-title">🛒 About Us</h1>
+          <p className="page-subtitle">
+            Your trusted source for authentic Nepali and Asian groceries in Birmingham.
+          </p>
+
+          <div className="info-card">
+            <h2>📖 Our Story</h2>
+            <p>
+              Ghosia Mini Market is Birmingham's premier destination for authentic Nepali and Asian groceries. 
+              We pride ourselves on offering fresh vegetables, premium spices, and traditional products that 
+              bring the taste of home to your kitchen.
+            </p>
+            <p>
+              Located in the heart of West Bromwich, we serve the local community with quality products at 
+              competitive prices. Our friendly staff is always ready to help you find exactly what you need.
+            </p>
+          </div>
+
+          <div className="info-card">
+            <h2>✨ What We Offer</h2>
+            <p>
+              • Fresh vegetables and fruits<br/>
+              • Authentic Nepali and Asian spices<br/>
+              • Rice, grains, and pulses<br/>
+              • Dairy products and beverages<br/>
+              • Meat and poultry<br/>
+              • Canned goods and frozen items
+            </p>
+          </div>
+        </div>
+      )}
       {page === "shop" && !orderDone && (
         <>
           <div className="hero">

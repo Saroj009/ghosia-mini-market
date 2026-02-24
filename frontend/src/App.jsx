@@ -850,7 +850,7 @@ export default function App() {
         <>
           <div className="hero">
             <div className="hero-badge">
-              <span>🎉</span> FRESH & AUTHENTIC
+              FRESH <span>🎉</span> FRESH & AUTHENTIC AUTHENTIC
             </div>
             <h1>Your Nepali & Asian Grocery Store</h1>
             <p className="hero-sub">

@@ -630,7 +630,7 @@ export default function App() {
         <div className="nav-center">
           <span className="nav-link" onClick={() => { setPage("shop"); setOrderDone(false); }}>Home</span>
           <span className="nav-link" onClick={() => setPage("about")}>About Us</span>
-          <span className="nav-link" onClick={() => setPage("terms")}>Terms & Conditions</span>
+          <span className="nav-link" onClick={() => setPage("contact")}>Contact</span>
           <span className="nav-link admin-link" onClick={() => setPage("admin-login")}>🔒 Admin</span>
         </div>
 
@@ -1276,8 +1276,6 @@ export default function App() {
           <div className="footer-links">
             <span className="footer-link" onClick={() => setPage("privacy")}>Privacy Policy</span>
             <span className="footer-link" onClick={() => setPage("terms")}>Terms & Conditions</span>
-              🔒 Admin
-            </span>
           </div>
           <div className="footer-copy">
             © 2026 Ghosia Mini Market. Nepali & Asian grocery in Birmingham.

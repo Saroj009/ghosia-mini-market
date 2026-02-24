@@ -93,6 +93,11 @@ export default function App() {
     "FIRST20": { discount: 20, type: "percentage", description: "20% off first order" },
   };
 
+  // Scroll to top whenever page changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [page]);
+
   // Load reviews from localStorage
   useEffect(() => {
     const savedReviews = localStorage.getItem('ghosia_reviews');

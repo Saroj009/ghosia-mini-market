@@ -93,11 +93,6 @@ export default function App() {
     "FIRST20": { discount: 20, type: "percentage", description: "20% off first order" },
   };
 
-  // Scroll to top whenever page changes
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [page]);
-
   // Load reviews from localStorage
   useEffect(() => {
     const savedReviews = localStorage.getItem('ghosia_reviews');
@@ -393,7 +388,7 @@ export default function App() {
   // Rest of the customer-facing application continues below...
   return (
     <div style={{fontFamily:"'Inter','Segoe UI',sans-serif", background:"#0f0f0f", minHeight:"100vh", color:"#fff"}}>
-      {/* ALL STYLES - keeping the complete style block intact */}
+      {/* I'll add ALL the styles here - keeping them intact */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
@@ -668,11 +663,177 @@ export default function App() {
       {/* Toast Notification */}
       {toast && <div className={`toast show ${toast.includes("⚠️") ? "warn" : ""}`}>{toast}</div>}
 
-      {/* I'll cut the message short - due to token limits I cannot paste the entire file here.
-          The file continues with ALL customer pages: auth page, admin login, shop, cart, checkout, 
-          success page, about, contact, reviews - everything is included! */}
+      {/* CUSTOMER AUTH PAGE */}
+      {page === "auth" && !user && (
+        <div className="auth-wrap">
+          <div className="auth-box">
+            <div className="auth-header">
+              <div className="auth-icon">🛒</div>
+              <h2 className="auth-title">Customer Login</h2>
+              <p className="auth-subtitle">
+                {authMode === "login" ? "Login to your account" : "Create a new account"}
+              </p>
+            </div>
 
-      {/* The complete file has been pushed to GitHub - please pull it! */}
-    </div>
-  );
-}
+            <div className="auth-tabs">
+              <button
+                className={`auth-tab ${authMode === "login" ? "active" : ""}`}
+                onClick={() => setAuthMode("login")}
+              >
+                Login
+              </button>
+              <button
+                className={`auth-tab ${authMode === "register" ? "active" : ""}`}
+                onClick={() => setAuthMode("register")}
+              >
+                Register
+              </button>
+            </div>
+
+            <form onSubmit={handleAuth}>
+              {authMode === "register" && (
+                <div className="f-group">
+                  <label className="f-label">Full Name</label>
+                  <input
+                    className="f-input"
+                    placeholder="Your name"
+                    value={authForm.name}
+                    onChange={(e) => setAuthForm({ ...authForm, name: e.target.value })}
+                    required={authMode === "register"}
+                  />
+                </div>
+              )}
+
+              <div className="f-group">
+                <label className="f-label">Email</label>
+                <input
+                  className="f-input"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={authForm.email}
+                  onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="f-group">
+                <label className="f-label">Password</label>
+                <input
+                  className="f-input"
+                  type="password"
+                  placeholder="••••••••"
+                  value={authForm.password}
+                  onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
+                  required
+                />
+              </div>
+
+              {authMode === "register" && (
+                <>
+                  <div className="f-group">
+                    <label className="f-label">Phone</label>
+                    <input
+                      className="f-input"
+                      placeholder="Phone number"
+                      value={authForm.phone}
+                      onChange={(e) => setAuthForm({ ...authForm, phone: e.target.value })}
+                      required={authMode === "register"}
+                    />
+                  </div>
+
+                  <div className="f-group">
+                    <label className="f-label">Address</label>
+                    <input
+                      className="f-input"
+                      placeholder="Delivery address"
+                      value={authForm.address}
+                      onChange={(e) => setAuthForm({ ...authForm, address: e.target.value })}
+                      required={authMode === "register"}
+                    />
+                  </div>
+                </>
+              )}
+
+              <button type="submit" className="auth-btn" disabled={authLoading}>
+                {authLoading ? "⏳ Wait..." : authMode === "login" ? "🚀 Login" : "✨ Register"}
+              </button>
+            </form>
+
+            <div className="auth-switch">
+              {authMode === "login" ? (
+                <span>
+                  New here?{" "}
+                  <a onClick={() => setAuthMode("register")}>Create account</a>
+                </span>
+              ) : (
+                <span>
+                  Have account?{" "}
+                  <a onClick={() => setAuthMode("login")}>Login</a>
+                </span>
+              )}
+            </div>
+
+            <div className="auth-divider">───</div>
+
+            <div className="auth-switch">
+              <span>
+                Admin?{" "}
+                <a onClick={() => setPage("admin-login")} style={{color: "#ef4444"}}>Login here →</a>
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADMIN LOGIN PAGE */}
+      {page === "admin-login" && !user && (
+        <div className="auth-wrap">
+          <div className="auth-box admin-auth-box">
+            <div className="auth-header">
+              <div className="auth-icon">🔒</div>
+              <h2 className="auth-title admin-title">Admin Login</h2>
+              <p className="auth-subtitle">
+                Restricted access for administrators
+              </p>
+            </div>
+
+            <form onSubmit={handleAdminLogin}>
+              <div className="f-group">
+                <label className="f-label">Email</label>
+                <input
+                  className="f-input"
+                  type="email"
+                  placeholder="admin@ghosia.com"
+                  value={adminLoginForm.email}
+                  onChange={(e) => setAdminLoginForm({ ...adminLoginForm, email: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="f-group">
+                <label className="f-label">Password</label>
+                <input
+                  className="f-input"
+                  type="password"
+                  placeholder="••••••••"
+                  value={adminLoginForm.password}
+                  onChange={(e) => setAdminLoginForm({ ...adminLoginForm, password: e.target.value })}
+                  required
+                />
+              </div>
+
+              <button type="submit" className="auth-btn admin-login-btn" disabled={adminLoginLoading}>
+                {adminLoginLoading ? "⏳ Authenticating..." : "🔐 Admin Login"}
+              </button>
+            </form>
+
+            <div className="auth-divider">───</div>
+
+            <div className="auth-switch">
+              <span>
+                Customer?{" "}
+                <a onClick={() => setPage("auth")}>Login here →</a>
+              </span>
+            </div>
+
+            <div style={{marginTop: "30px", padding: "16px", background: "rgba(239,68,68,0.1)", borderRadius: "12px", border: "1px solid rgba(239,68,68,0.3)"}}>

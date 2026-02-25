@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Ghosia Mini Market",
-    "slug": "ghosia-mobile-app",
+    "name": "Ghosia Market",
+    "slug": "ghosia-market",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",

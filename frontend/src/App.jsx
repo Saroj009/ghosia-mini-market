@@ -98,14 +98,26 @@ export default function App() {
     window.scrollTo(0, 0);
   }, [page]);
 
-  // Load reviews from localStorage
+  // Load reviews from API
   useEffect(() => {
-    const savedReviews = localStorage.getItem('ghosia_reviews');
-    if (savedReviews) {
+    async function loadReviews() {
       try {
-        setReviews(JSON.parse(savedReviews));
-      } catch (e) {
-        console.error('Failed to parse reviews:', e);
+        const res = await fetch(`${API_URL}/reviews`);
+        const data = await res.json();
+        
+        if (Array.isArray(data)) {
+          const formatted = data.map(r => ({
+            id: r._id,
+            name: r.customerName,
+            rating: r.rating,
+            date: new Date(r.createdAt).toLocaleDateString(),
+            review: r.comment
+          }));
+          setReviews(formatted);
+        }
+      } catch (error) {
+        console.error('Load reviews error:', error);
+        // Fallback to default reviews
         setReviews([
           { id: 1, name: "Priya Sharma", rating: 5, date: "2 weeks ago", review: "Best Nepali grocery store in Birmingham! Fresh vegetables and authentic spices. The owner is very friendly and helpful. Highly recommend!" },
           { id: 2, name: "Raj Gurung", rating: 5, date: "1 month ago", review: "Finally found a place that sells authentic Nepali products! The basmati rice quality is excellent and prices are very reasonable. Will definitely come back." },
@@ -115,22 +127,9 @@ export default function App() {
           { id: 6, name: "Bikash Rai", rating: 5, date: "3 weeks ago", review: "Excellent Nepali mini market! Found all the ingredients I needed for momo and curry. Fresh meat section is great too. Five stars!" }
         ]);
       }
-    } else {
-      setReviews([
-        { id: 1, name: "Priya Sharma", rating: 5, date: "2 weeks ago", review: "Best Nepali grocery store in Birmingham! Fresh vegetables and authentic spices. The owner is very friendly and helpful. Highly recommend!" },
-        { id: 2, name: "Raj Gurung", rating: 5, date: "1 month ago", review: "Finally found a place that sells authentic Nepali products! The basmati rice quality is excellent and prices are very reasonable. Will definitely come back." },
-        { id: 3, name: "Aisha Patel", rating: 5, date: "3 weeks ago", review: "Great selection of Indian groceries! Fresh vegetables, wide variety of spices, and everything I need for cooking authentic meals. Fast delivery too!" },
-        { id: 4, name: "Kumar Thapa", rating: 4, date: "1 week ago", review: "Good quality products and convenient location. The store has all Asian essentials. Sometimes gets busy but service is always quick." },
-        { id: 5, name: "Sarah Ahmed", rating: 5, date: "2 months ago", review: "Love this store! They have everything from fresh produce to specialty ingredients. The staff is always welcoming and helpful. Best prices in Birmingham!" },
-        { id: 6, name: "Bikash Rai", rating: 5, date: "3 weeks ago", review: "Excellent Nepali mini market! Found all the ingredients I needed for momo and curry. Fresh meat section is great too. Five stars!" }
-      ]);
     }
+    loadReviews();
   }, []);
-
-  // Save reviews to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('ghosia_reviews', JSON.stringify(reviews));
-  }, [reviews]);
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -241,19 +240,48 @@ export default function App() {
     showToast("🗑️ Promo code removed");
   }
 
-  function handleSubmitReview(e) {
+  async function handleSubmitReview(e) {
     e.preventDefault();
-    const newReview = {
-      id: Date.now(),
-      name: reviewForm.name,
-      rating: parseInt(reviewForm.rating),
-      date: "Just now",
-      review: reviewForm.review
-    };
-    setReviews([newReview, ...reviews]);
-    setReviewForm({ name: "", rating: 5, review: "" });
-    setShowReviewForm(false);
-    showToast("✅ Thank you for your review!");
+    
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`${API_URL}/reviews`, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({
+          productId: null,
+          customerName: reviewForm.name,
+          customerEmail: user ? user.email : '',
+          rating: parseInt(reviewForm.rating),
+          comment: reviewForm.review
+        })
+      });
+
+      const data = await res.json();
+      
+      if (data.success) {
+        console.log('✅ Review saved:', data.review._id);
+        const newReview = {
+          id: data.review._id,
+          name: reviewForm.name,
+          rating: parseInt(reviewForm.rating),
+          date: "Just now",
+          review: reviewForm.review
+        };
+        setReviews([newReview, ...reviews]);
+        setReviewForm({ name: "", rating: 5, review: "" });
+        setShowReviewForm(false);
+        showToast("✅ Thank you for your review!");
+      } else {
+        throw new Error(data.error || 'Review failed');
+      }
+    } catch (error) {
+      console.error('Review error:', error);
+      showToast(`⚠️ ${error.message}`);
+    }
   }
 
   async function placeOrder() {
@@ -301,14 +329,55 @@ export default function App() {
       }
     }
 
-    setOrderDone(true); 
-    setCart([]); 
-    setForm({ name:"", email:"", address:"", phone:"", card:"", expiry:"", cvv:"" });
-    setCreateAccount(false);
-    setAccountPassword("");
-    setAppliedPromo(null);
-    setPromoCode("");
-    localStorage.removeItem('ghosia_cart');
+    // SEND ORDER TO API
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const orderData = {
+        customerName: form.name,
+        customerEmail: form.email,
+        customerPhone: form.phone,
+        deliveryAddress: form.address,
+        items: cart.map(item => ({
+          productId: item._id,
+          name: item.name,
+          price: item.price,
+          quantity: item.qty,
+          image: getProductImage(item)
+        })),
+        subtotal: subtotal,
+        discount: discount,
+        total: parseFloat(total),
+        promoCode: appliedPromo ? promoCode : ''
+      };
+
+      const res = await fetch(`${API_URL}/orders`, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(orderData)
+      });
+
+      const data = await res.json();
+      
+      if (data.success) {
+        console.log('✅ Order saved to database:', data.orderId);
+        setOrderDone(true); 
+        setCart([]); 
+        setForm({ name:"", email:"", address:"", phone:"", card:"", expiry:"", cvv:"" });
+        setCreateAccount(false);
+        setAccountPassword("");
+        setAppliedPromo(null);
+        setPromoCode("");
+        localStorage.removeItem('ghosia_cart');
+      } else {
+        throw new Error(data.error || 'Order failed');
+      }
+    } catch (error) {
+      console.error('Order error:', error);
+      showToast(`⚠️ Failed to place order: ${error.message}`);
+    }
   }
 
   const cartQtyForProduct = (id) => { const item = cart.find(i => i._id === id); return item ? item.qty : 0; };

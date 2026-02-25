@@ -4,7 +4,7 @@ import { StyleSheet, Text, View, ScrollView, TextInput, TouchableOpacity, Image,
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // REPLACE WITH YOUR LOCAL IP - Run: ipconfig getifaddr en0
-const API_URL = 'http://YOUR_IP_HERE:3000/api';
+const API_URL = 'http://192.168.1.169:3000/api';
 
 const PRODUCT_EMOJIS = {
   "Whole Milk": "🥛", "Cheddar Cheese": "🧀", "Greek Yogurt": "🥛", "Butter": "🧈",
@@ -25,6 +25,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [authMode, setAuthMode] = useState('login');
+  const [loginType, setLoginType] = useState('customer'); // 'customer' or 'admin'
   const [authForm, setAuthForm] = useState({ name: '', email: '', password: '', phone: '', address: '' });
   const [checkoutForm, setCheckoutForm] = useState({ name: '', email: '', address: '', phone: '', card: '', expiry: '', cvv: '' });
   const [orderDone, setOrderDone] = useState(false);
@@ -195,25 +196,27 @@ export default function App() {
     return (
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.authContainer}>
-          <Text style={styles.authEmoji}>🛒</Text>
-          <Text style={styles.authTitle}>{authMode === 'login' ? 'Login' : 'Register'}</Text>
+          <Text style={styles.authEmoji}>{loginType === 'admin' ? '👑' : '🛒'}</Text>
+          <Text style={styles.authTitle}>{loginType === 'admin' ? 'Admin Login' : (authMode === 'login' ? 'Customer Login' : 'Register')}</Text>
           
-          <View style={styles.authTabs}>
-            <TouchableOpacity 
-              style={[styles.authTab, authMode === 'login' && styles.authTabActive]}
-              onPress={() => setAuthMode('login')}
-            >
-              <Text style={[styles.authTabText, authMode === 'login' && styles.authTabTextActive]}>Login</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.authTab, authMode === 'register' && styles.authTabActive]}
-              onPress={() => setAuthMode('register')}
-            >
-              <Text style={[styles.authTabText, authMode === 'register' && styles.authTabTextActive]}>Register</Text>
-            </TouchableOpacity>
-          </View>
+          {loginType === 'customer' && (
+            <View style={styles.authTabs}>
+              <TouchableOpacity 
+                style={[styles.authTab, authMode === 'login' && styles.authTabActive]}
+                onPress={() => setAuthMode('login')}
+              >
+                <Text style={[styles.authTabText, authMode === 'login' && styles.authTabTextActive]}>Login</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.authTab, authMode === 'register' && styles.authTabActive]}
+                onPress={() => setAuthMode('register')}
+              >
+                <Text style={[styles.authTabText, authMode === 'register' && styles.authTabTextActive]}>Register</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
-          {authMode === 'register' && (
+          {authMode === 'register' && loginType === 'customer' && (
             <TextInput
               style={styles.input}
               placeholder="Full Name"
@@ -239,7 +242,7 @@ export default function App() {
             onChangeText={(text) => setAuthForm({ ...authForm, password: text })}
             secureTextEntry
           />
-          {authMode === 'register' && (
+          {authMode === 'register' && loginType === 'customer' && (
             <>
               <TextInput
                 style={styles.input}
@@ -259,7 +262,7 @@ export default function App() {
             </>
           )}
           <TouchableOpacity style={styles.btnPrimary} onPress={handleAuth}>
-            <Text style={styles.btnText}>{authMode === 'login' ? '🚀 Login' : '✨ Register'}</Text>
+            <Text style={styles.btnText}>{loginType === 'admin' ? '👑 Admin Login' : (authMode === 'login' ? '🚀 Login' : '✨ Register')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setPage('shop')}>
             <Text style={styles.linkText}>← Back to Shop</Text>
@@ -365,12 +368,17 @@ export default function App() {
         <View style={styles.headerRight}>
           {user ? (
             <TouchableOpacity onPress={handleLogout}>
-              <Text style={styles.userBadge}>👤 {user.name.split(' ')[0]}</Text>
+              <Text style={styles.userBadge}>{user.role === 'admin' ? '👑' : '👤'} {user.name.split(' ')[0]}</Text>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity onPress={() => setPage('auth')}>
-              <Text style={styles.loginBtn}>🔐 Login</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity onPress={() => { setLoginType('customer'); setAuthMode('login'); setPage('auth'); }}>
+                <Text style={styles.loginBtn}>👤 Customer</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => { setLoginType('admin'); setAuthMode('login'); setPage('auth'); }}>
+                <Text style={styles.adminBtn}>👑 Admin</Text>
+              </TouchableOpacity>
+            </>
           )}
           <TouchableOpacity onPress={() => setPage('cart')} style={styles.cartBtn}>
             <Text style={styles.cartBtnText}>🛒 {totalItems}</Text>
@@ -429,11 +437,12 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 2, borderBottomColor: 'rgba(255,255,255,0.1)' },
   headerTitle: { fontSize: 22, fontWeight: '900', color: '#fff' },
   headerSubtitle: { fontSize: 11, color: '#aaa', textTransform: 'uppercase', letterSpacing: 2, fontWeight: '800' },
-  headerRight: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-  userBadge: { color: '#fff', fontSize: 14, fontWeight: '800', backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20 },
-  loginBtn: { color: '#fff', fontSize: 14, fontWeight: '800', backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20 },
-  cartBtn: { backgroundColor: '#10b981', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
-  cartBtnText: { color: '#fff', fontWeight: '900', fontSize: 14 },
+  headerRight: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  userBadge: { color: '#fff', fontSize: 13, fontWeight: '800', backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
+  loginBtn: { color: '#fff', fontSize: 12, fontWeight: '800', backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
+  adminBtn: { color: '#fff', fontSize: 12, fontWeight: '800', backgroundColor: '#f59e0b', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
+  cartBtn: { backgroundColor: '#10b981', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  cartBtnText: { color: '#fff', fontWeight: '900', fontSize: 13 },
   searchBox: { padding: 16 },
   searchInput: { backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)', borderRadius: 12, padding: 12, color: '#fff', fontSize: 16 },
   categoryRow: { paddingHorizontal: 16, marginBottom: 16 },
